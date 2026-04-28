@@ -1,82 +1,122 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'payment_screen.dart';
+import 'reading_books.dart';
 
-class ReadingScreen extends StatelessWidget {
+class ReadingScreen extends StatefulWidget {
   const ReadingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<ReadingScreen> createState() =>
+      _ReadingScreenState();
+}
 
+class _ReadingScreenState
+    extends State<ReadingScreen> {
+  String selectedCategory = "all";
+  String searchText = "";
+
+  final List<Map<String, String>> categories = [
+    {"key": "all", "label": "All"},
+    {"key": "school", "label": "School"},
+    {"key": "religion", "label": "Religion"},
+    {"key": "selfhelp", "label": "Self Help"},
+    {"key": "programming", "label": "Programming"},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Books"),
       ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  searchText =
+                      value.toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: "Search books...",
+                prefixIcon:
+                    const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius:
+                      BorderRadius.circular(20),
+                ),
+              ),
+            ),
+          ),
 
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection("books").snapshots(),
-        builder: (context, snapshot) {
+          SizedBox(
+            height: 50,
+            child: ListView.builder(
+              scrollDirection:
+                  Axis.horizontal,
+              itemCount:
+                  categories.length,
+              itemBuilder:
+                  (context, index) {
+                var cat =
+                    categories[index];
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No books available"));
-          }
-
-          var books = snapshot.data!.docs;
-
-          return ListView.builder(
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-
-              var doc = books[index];
-              var book = doc.data() as Map<String, dynamic>;
-
-              String title = book["title"] ?? "No title";
-              double price = (book["price"] ?? 0).toDouble();
-              String image = book["coverImage"] ??
-                  "https://via.placeholder.com/150";
-              String pdfUrl = book["pdfUrl"] ?? "";
-
-              return Card(
-                child: ListTile(
-
-                  leading: Image.network(
-                    image,
-                    width: 50,
-                    errorBuilder: (a,b,c){
-                      return const Icon(Icons.menu_book);
-                    },
-                  ),
-
-                  title: Text(title),
-
-                  subtitle: Text("\$$price"),
-
-                  trailing: const Icon(Icons.shopping_cart),
-
+                return GestureDetector(
                   onTap: () {
-
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PaymentScreen(
-                          bookId: doc.id,
-                          price: price,
-                          pdfUrl: pdfUrl,
+                    setState(() {
+                      selectedCategory =
+                          cat["key"]!;
+                    });
+                  },
+                  child: Container(
+                    margin:
+                        const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 8,
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 14,
+                    ),
+                    decoration:
+                        BoxDecoration(
+                      color:
+                          selectedCategory ==
+                                  cat["key"]
+                              ? Colors.green
+                              : Colors.grey[200],
+                      borderRadius:
+                          BorderRadius.circular(
+                              20),
+                    ),
+                    child: Center(
+                      child: Text(
+                        cat["label"]!,
+                        style: TextStyle(
+                          color:
+                              selectedCategory ==
+                                      cat["key"]
+                                  ? Colors.white
+                                  : Colors.black,
                         ),
                       ),
-                    );
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
 
-                  },
-
-                ),
-              );
-            },
-          );
-        },
+          Expanded(
+            child: ReadingBooks(
+              category:
+                  selectedCategory,
+              search: searchText,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -53,42 +53,112 @@ class _CartScreenState extends State<CartScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) {
-        return AlertDialog(
-          title: const Text("Payment Successful"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Phone: $phone"),
-              Text("Order ID: $orderId"),
-              Text("Amount: \$${total.toStringAsFixed(2)}"),
-              const SizedBox(height: 10),
-              const Text(
-                "Mahadsanid 🙏 Screenshot qaado",
-                textAlign: TextAlign.center,
-              ),
-            ],
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(25),
           ),
-          actions: [
-            TextButton(
-              onPressed: () =>
-                  Navigator.pop(context),
-              child: const Text("OK"),
-            )
-          ],
+          child: Container(
+            padding:
+                const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius:
+                  BorderRadius.circular(25),
+            ),
+            child: Column(
+              mainAxisSize:
+                  MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.check_circle,
+                  size: 80,
+                  color: Colors.green,
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  "Payment Successful",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Text("Phone: $phone"),
+                const SizedBox(height: 8),
+                Text(
+                  "Order ID: $orderId",
+                  style: const TextStyle(
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Amount: \$${total.toStringAsFixed(2)}",
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontSize: 18,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  "Mahadsanid adeegashadaada Dhibic Dahab Online Store\nFadlan form kaan Screenshot ka qaado",
+                  textAlign:
+                      TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style:
+                        ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Colors.green,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(
+                          context);
+                    },
+                    child:
+                        const Text("OK"),
+                  ),
+                )
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
   Future<void> checkout(
-    BuildContext context,
-    String phone,
-    String receiverPhone,
-    String address,
-  ) async {
+      BuildContext context,
+      String phone) async {
     try {
       String userId =
           FirebaseAuth.instance.currentUser!.uid;
+
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection("users")
+              .doc(userId)
+              .get();
+
+      final userData =
+          userDoc.data() ?? {};
+
+      final customerName =
+          userData["name"] ??
+              userData["fullName"] ??
+              userData["username"] ??
+              "Unknown Customer";
+
+      final customerPhoneFromDb =
+          userData["phone"] ?? phone;
 
       var cartSnap = await FirebaseFirestore
           .instance
@@ -110,14 +180,18 @@ class _CartScreenState extends State<CartScreen> {
       }
 
       double deliveryFee =
-          deliveryType == "pickup" ? 0 : 1;
+          deliveryType == "pickup"
+              ? 0
+              : 1.0;
 
       double total =
           subtotal + deliveryFee;
 
       String orderId =
-          DateTime.now()
-              .millisecondsSinceEpoch
+          (1000 +
+                  (DateTime.now()
+                          .millisecondsSinceEpoch %
+                      9000))
               .toString();
 
       final payment =
@@ -135,7 +209,9 @@ class _CartScreenState extends State<CartScreen> {
               "";
 
       if (response.contains("success") ||
-          response.contains("approved")) {
+          response.contains("approved") ||
+          response.contains(
+              "rcs_success")) {
         for (var item in cartSnap.docs) {
           final data =
               item.data()
@@ -145,18 +221,45 @@ class _CartScreenState extends State<CartScreen> {
               .collection("orders")
               .doc(orderId + item.id)
               .set({
+            "id": orderId + item.id,
             "orderId": orderId,
+            "merchantId":
+                data["merchantId"] ?? "",
+            "merchantName":
+                data["merchantName"] ??
+                    "Unknown Seller",
+            "merchantPhone":
+                data["merchantPhone"] ??
+                    "",
             "customerId": userId,
-            "phone": phone,
-            "receiverPhone": receiverPhone, // 🔥 NEW
-            "address": address, // 🔥 NEW
-            "productName": data["name"],
-            "price": data["price"],
-            "quantity": data["quantity"],
+            "customerName":
+                customerName,
+            "customerPhone":
+                customerPhoneFromDb,
+            "productName":
+                data["name"] ?? "",
+            "image":
+                data["image"] ?? "",
+            "price":
+                data["price"] ?? 0,
+            "quantity":
+                data["quantity"] ?? 1,
+            "deliveryType":
+                deliveryType,
+            "deliveryFee":
+                deliveryFee,
+            "subtotal": subtotal,
             "total": total,
+            "paymentResponse":
+                payment,
+            "paymentStatus":
+                "paid",
             "status": "pending",
             "createdAt":
-                FieldValue.serverTimestamp(),
+                FieldValue
+                    .serverTimestamp(),
+            "date": DateTime.now()
+                .toString(),
           });
 
           await item.reference.delete();
@@ -169,11 +272,32 @@ class _CartScreenState extends State<CartScreen> {
           orderId: orderId,
           total: total,
         );
+
+        return;
+      }
+
+      if (response.contains(
+              "insufficient") ||
+          response.contains(
+              "balance")) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+          const SnackBar(
+            content: Text(
+                "❌ Fadlan marka hore lacag kushubo"),
+            backgroundColor:
+                Colors.red,
+          ),
+        );
         return;
       }
 
       throw "Payment failed";
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context)
           .showSnackBar(
         SnackBar(
@@ -222,7 +346,8 @@ class _CartScreenState extends State<CartScreen> {
           }
 
           double delivery =
-              deliveryType == "pickup"
+              deliveryType ==
+                      "pickup"
                   ? 0
                   : 1;
 
@@ -231,6 +356,31 @@ class _CartScreenState extends State<CartScreen> {
 
           return Column(
             children: [
+              Container(
+                margin:
+                    const EdgeInsets.all(15),
+                height: 180,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius:
+                      BorderRadius.circular(
+                          20),
+                  image:
+                      const DecorationImage(
+                    image: AssetImage(
+                      "assets/images/delivery_bike.png",
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color:
+                          Colors.black12,
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
               Expanded(
                 child: ListView.builder(
                   itemCount: items.length,
@@ -238,50 +388,117 @@ class _CartScreenState extends State<CartScreen> {
                       (context, index) {
                     var item = items[index];
 
-                    return ListTile(
-                      title: Text(item["name"]),
-                      subtitle:
-                          Text("\$${item["price"]}"),
-                      trailing: Row(
-                        mainAxisSize:
-                            MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              updateQuantity(
-                                userId,
-                                item.id,
-                                item["quantity"] -
-                                    1,
-                              );
-                            },
-                            icon: const Icon(
-                                Icons.remove),
-                          ),
-                          Text(item["quantity"]
-                              .toString()),
-                          IconButton(
-                            onPressed: () {
-                              updateQuantity(
-                                userId,
-                                item.id,
-                                item["quantity"] +
-                                    1,
-                              );
-                            },
-                            icon: const Icon(
-                                Icons.add),
+                    return Container(
+                      margin:
+                          const EdgeInsets
+                              .all(8),
+                      decoration:
+                          BoxDecoration(
+                        color:
+                            Colors.white,
+                        borderRadius:
+                            BorderRadius
+                                .circular(
+                                    20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors
+                                .black12,
+                            blurRadius:
+                                8,
                           ),
                         ],
+                      ),
+                      child: ListTile(
+                        leading:
+                            ClipRRect(
+                          borderRadius:
+                              BorderRadius
+                                  .circular(
+                                      10),
+                          child:
+                              Image.network(
+                            item["image"],
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit
+                                .cover,
+                          ),
+                        ),
+                        title: Text(
+                          item["name"],
+                          style:
+                              const TextStyle(
+                            fontWeight:
+                                FontWeight
+                                    .bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          "\$${item["price"]}",
+                          style:
+                              const TextStyle(
+                            color: Colors
+                                .green,
+                            fontWeight:
+                                FontWeight
+                                    .bold,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize:
+                              MainAxisSize
+                                  .min,
+                          children: [
+                            IconButton(
+                              onPressed:
+                                  () {
+                                updateQuantity(
+                                  userId,
+                                  item.id,
+                                  item["quantity"] -
+                                      1,
+                                );
+                              },
+                              icon:
+                                  const Icon(
+                                Icons
+                                    .remove_circle,
+                                color: Colors
+                                    .red,
+                              ),
+                            ),
+                            Text(item[
+                                    "quantity"]
+                                .toString()),
+                            IconButton(
+                              onPressed:
+                                  () {
+                                updateQuantity(
+                                  userId,
+                                  item.id,
+                                  item["quantity"] +
+                                      1,
+                                );
+                              },
+                              icon:
+                                  const Icon(
+                                Icons
+                                    .add_circle,
+                                color: Colors
+                                    .green,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
                 ),
               ),
-
               RadioListTile(
-                title:
-                    const Text("Self Pickup"),
+                title: const Text(
+                    "Self Pickup"),
                 value: "pickup",
                 groupValue:
                     deliveryType,
@@ -291,7 +508,6 @@ class _CartScreenState extends State<CartScreen> {
                   });
                 },
               ),
-
               RadioListTile(
                 title:
                     const Text("Delivery"),
@@ -304,24 +520,38 @@ class _CartScreenState extends State<CartScreen> {
                   });
                 },
               ),
-
               Padding(
                 padding:
                     const EdgeInsets.all(
                         16),
                 child: Column(
                   children: [
-                    Text("Total: \$$total"),
+                    Text(
+                        "Subtotal: \$$subtotal"),
+                    Text(
+                        "Delivery: \$$delivery"),
+                    Text(
+                      "Total: \$$total",
+                      style:
+                          const TextStyle(
+                        fontWeight:
+                            FontWeight
+                                .bold,
+                        fontSize: 18,
+                      ),
+                    ),
                     const SizedBox(
-                        height: 10),
-
+                        height: 15),
                     ElevatedButton(
+                      style:
+                          ElevatedButton
+                              .styleFrom(
+                        backgroundColor:
+                            const Color(
+                                0xFFD4AF37),
+                      ),
                       onPressed: () {
-                        final phone =
-                            TextEditingController();
-                        final receiver =
-                            TextEditingController();
-                        final address =
+                        final phoneController =
                             TextEditingController();
 
                         showDialog(
@@ -331,50 +561,26 @@ class _CartScreenState extends State<CartScreen> {
                               title:
                                   const Text(
                                       "Payment"),
-                              content: Column(
-                                mainAxisSize:
-                                    MainAxisSize
-                                        .min,
-                                children: [
+                              content:
                                   TextField(
-                                    controller:
-                                        phone,
-                                    decoration:
-                                        const InputDecoration(
-                                      labelText:
-                                          "Your Phone",
-                                    ),
-                                  ),
-                                  TextField(
-                                    controller:
-                                        receiver,
-                                    decoration:
-                                        const InputDecoration(
-                                      labelText:
-                                          "Receiver Phone",
-                                    ),
-                                  ),
-                                  TextField(
-                                    controller:
-                                        address,
-                                    decoration:
-                                        const InputDecoration(
-                                      labelText:
-                                          "Address",
-                                    ),
-                                  ),
-                                ],
+                                controller:
+                                    phoneController,
+                                decoration:
+                                    const InputDecoration(
+                                  labelText:
+                                      "Phone",
+                                ),
                               ),
                               actions: [
                                 ElevatedButton(
-                                  onPressed: () {
+                                  onPressed:
+                                      () {
                                     Navigator.pop(
                                         context);
                                     checkout(
                                       context,
-                                      phone.text,
-                                      receiver.text,
-                                      address.text,
+                                      phoneController
+                                          .text,
                                     );
                                   },
                                   child:

@@ -1,100 +1,225 @@
 import 'package:flutter/material.dart';
-import 'category_products.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'category_merchants_screen.dart';
+import '../widgets/cart_icon.dart';
 
 class CategoriesScreen extends StatelessWidget {
-
   const CategoriesScreen({super.key});
+
+  IconData getCategoryIcon(String key) {
+    switch (key) {
+      case "restaurants":
+        return Icons.restaurant;
+      case "clothes":
+        return Icons.checkroom;
+      case "supermarket":
+      case "supermarkets":
+        return Icons.shopping_cart;
+      case "electronics":
+        return Icons.devices;
+      case "pharmacy":
+        return Icons.local_hospital;
+      case "companies":
+        return Icons.business;
+      case "organics":
+        return Icons.eco;
+      case "machines":
+        return Icons.precision_manufacturing;
+      default:
+        return Icons.category;
+    }
+  }
+
+  bool hasDiscount(Map<String, dynamic> data) {
+    final discount =
+        data["discount"]?.toString().trim() ?? "";
+    return discount.isNotEmpty;
+  }
 
   @override
   Widget build(BuildContext context) {
-
-    List categories = [
-
-      {"name":"Restaurants","icon":Icons.restaurant},
-      {"name":"Clothes","icon":Icons.checkroom},
-      {"name":"Supermarkets","icon":Icons.shopping_cart},
-      {"name":"Electronics","icon":Icons.devices},
-      {"name":"Pharmacy","icon":Icons.local_hospital},
-      {"name":"Companies","icon":Icons.business},
-      {"name":"Organics","icon":Icons.eco},
-      {"name":"Machines","icon":Icons.precision_manufacturing},
-      {"name":"Reading","icon":Icons.menu_book},
-      {"name":"Exchange Money","icon":Icons.currency_exchange},
-
-    ];
-
     return Scaffold(
-
+      backgroundColor: const Color(0xFFF8F0C8),
       appBar: AppBar(
-        title: const Text("Categories"),
-      ),
-
-      body: GridView.builder(
-
-        padding: const EdgeInsets.all(16),
-
-        itemCount: categories.length,
-
-        gridDelegate:
-        const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+        backgroundColor: const Color(0xFFEDE7F6),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "Categories",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+            color: Colors.black87,
+          ),
         ),
+        actions: const [
+          CartIcon(),
+        ],
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection("categories")
+            .where("isActive", isEqualTo: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-        itemBuilder:(context,index){
+          final allDocs = snapshot.data!.docs;
 
-          var cat = categories[index];
+          final docs = allDocs.where((doc) {
+            final data =
+                doc.data() as Map<String, dynamic>;
 
-          return GestureDetector(
+            if (doc.id == "reading") {
+              return false;
+            }
 
-            onTap:(){
+            return hasDiscount(data);
+          }).toList();
 
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:(_)=>CategoryProducts(
-                    category: cat["name"],
+          if (docs.isEmpty) {
+            return const Center(
+              child: Text("No categories found"),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final doc = docs[index];
+              final data =
+                  doc.data() as Map<String, dynamic>;
+
+              final categoryKey = doc.id;
+
+              return GestureDetector(
+                onTap: () {
+                  // 🔥 IMPORTANT UPDATE
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          CategoryMerchantsScreen(
+                        category: categoryKey,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  margin:
+                      const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37),
+                    borderRadius:
+                        BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black
+                            .withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding:
+                            const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white
+                              .withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          getCategoryIcon(
+                              categoryKey),
+                          size: 34,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment
+                                  .start,
+                          children: [
+                            Text(
+                              data["name"] ?? "",
+                              style:
+                                  const TextStyle(
+                                fontSize: 22,
+                                fontWeight:
+                                    FontWeight.bold,
+                                color:
+                                    Colors.white,
+                              ),
+                            ),
+                            const SizedBox(
+                                height: 6),
+                            Text(
+                              data["description"] ??
+                                  "",
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.white
+                                    .withOpacity(
+                                        0.9),
+                              ),
+                            ),
+                            const SizedBox(
+                                height: 10),
+                            Container(
+                              padding:
+                                  const EdgeInsets
+                                      .symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration:
+                                  BoxDecoration(
+                                color: Colors.red,
+                                borderRadius:
+                                    BorderRadius
+                                        .circular(
+                                            20),
+                              ),
+                              child: Text(
+                                "🔥 ${data["discount"]}",
+                                style:
+                                    const TextStyle(
+                                  color:
+                                      Colors.white,
+                                  fontWeight:
+                                      FontWeight
+                                          .bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white,
+                        size: 22,
+                      ),
+                    ],
                   ),
                 ),
               );
-
             },
-
-            child: Card(
-
-              elevation:3,
-
-              child:Column(
-
-                mainAxisAlignment:
-                MainAxisAlignment.center,
-
-                children:[
-
-                  Icon(
-                    cat["icon"],
-                    size:40,
-                  ),
-
-                  const SizedBox(height:10),
-
-                  Text(cat["name"])
-
-                ],
-
-              ),
-
-            ),
-
           );
-
         },
-
       ),
-
     );
-
   }
-
 }

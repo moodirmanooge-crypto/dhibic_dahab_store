@@ -7,9 +7,11 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'merchant_orders.dart';
 import 'merchant_products.dart';
 import 'withdraw_screen.dart';
+import 'main_screen.dart';
+import 'chat/merchant_chat_list.dart';
+import 'add_product_screen.dart'; // 🔥 muhiim
 
 class MerchantDashboard extends StatelessWidget {
-
   final String merchantId;
   final String merchantName;
 
@@ -20,9 +22,8 @@ class MerchantDashboard extends StatelessWidget {
   });
 
   Future<void> uploadImage(BuildContext context) async {
-
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final picked =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (picked == null) return;
 
@@ -30,213 +31,239 @@ class MerchantDashboard extends StatelessWidget {
 
     final ref = FirebaseStorage.instance
         .ref()
-        .child("merchant_images")
-        .child("$merchantId.jpg");
+        .child("merchant_images/$merchantId.jpg");
 
     await ref.putFile(file);
 
-    String url = await ref.getDownloadURL();
+    final url = await ref.getDownloadURL();
 
     await FirebaseFirestore.instance
         .collection("merchant")
         .doc(merchantId)
-        .update({
-      "image": url
+        .update({"image": url});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Profile updated")),
+    );
+  }
+
+  Future<void> uploadPromoAd(BuildContext context) async {
+    final picked =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (picked == null) return;
+
+    File file = File(picked.path);
+
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child("promo_ads/$merchantId.jpg");
+
+    await ref.putFile(file);
+
+    final url = await ref.getDownloadURL();
+
+    await FirebaseFirestore.instance.collection("promo_ads").doc(merchantId).set({
+      "merchantId": merchantId,
+      "merchantName": merchantName,
+      "image": url,
+      "isActive": true,
+      "createdAt": FieldValue.serverTimestamp(),
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Profile image updated")),
+      const SnackBar(content: Text("Promo uploaded")),
+    );
+  }
+
+  Widget goldButton({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+  }) {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFFD4AF37),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+      ),
+      icon: Icon(icon),
+      label: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      onPressed: onTap,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
+      backgroundColor: const Color(0xFFFFF8E1),
       appBar: AppBar(
-        title: Text(merchantName),
+        title: const Text("Merchant Dashboard"),
+        backgroundColor: const Color(0xFFD4AF37),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const MainScreen()),
+              (route) => false,
+            );
+          },
+        ),
       ),
-
       body: StreamBuilder<DocumentSnapshot>(
-
         stream: FirebaseFirestore.instance
             .collection("merchant")
             .doc(merchantId)
             .snapshots(),
-
         builder: (context, snapshot) {
-
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          Map<String, dynamic> data =
+          final data =
               snapshot.data!.data() as Map<String, dynamic>? ?? {};
 
-          String image = data["image"] ?? "";
-          double wallet = (data["wallet"] ?? 0).toDouble();
-          int commission = data["commission"] ?? 0;
+          final image = data["image"] ?? "";
+          final wallet = (data["wallet"] ?? 0).toDouble();
+          final commission = data["commission"] ?? 10;
+
+          final category = data["category"] ?? "clothes_women";
 
           return ListView(
-
             padding: const EdgeInsets.all(20),
-
             children: [
-
               Center(
                 child: CircleAvatar(
-                  radius: 45,
+                  radius: 50,
                   backgroundImage:
-                      image != "" ? NetworkImage(image) : null,
-                  child: image == ""
+                      image.isNotEmpty ? NetworkImage(image) : null,
+                  child: image.isEmpty
                       ? const Icon(Icons.store, size: 40)
                       : null,
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 15),
 
-              ElevatedButton(
-                onPressed: (){
-                  uploadImage(context);
-                },
-                child: const Text("Upload Profile Image"),
+              goldButton(
+                icon: Icons.image,
+                text: "Upload Profile Image",
+                onTap: () => uploadImage(context),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
 
-              Center(
-                child: Text(
-                  merchantName,
-                  style: const TextStyle(
-                    fontSize:22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              goldButton(
+                icon: Icons.campaign,
+                text: "Upload Promo Ad",
+                onTap: () => uploadPromoAd(context),
               ),
 
               const SizedBox(height: 30),
 
-              const Text(
-                "Wallet Balance",
-                style: TextStyle(fontSize:18),
-              ),
-
-              const SizedBox(height:5),
-
               Text(
-                "\$$wallet",
+                "Wallet: \$${wallet.toStringAsFixed(2)}",
                 style: const TextStyle(
-                  fontSize:28,
-                  fontWeight: FontWeight.bold,
-                ),
+                    fontSize: 24, fontWeight: FontWeight.bold),
               ),
 
-              const SizedBox(height:10),
+              Text("Commission: $commission%"),
 
-              Text(
-                "Commission: $commission%",
-                style: const TextStyle(fontSize:16),
-              ),
+              const SizedBox(height: 30),
 
-              const SizedBox(height:30),
-
-              ElevatedButton.icon(
-
-                icon: const Icon(Icons.add),
-
-                label: const Text("Add Product"),
-
-                onPressed: (){
-
-                  Navigator.pushNamed(
-                    context,
-                    "/addProduct",
-                    arguments: merchantId,
-                  );
-
-                },
-
-              ),
-
-              const SizedBox(height:10),
-
-              ElevatedButton.icon(
-
-                icon: const Icon(Icons.inventory),
-
-                label: const Text("My Products"),
-
-                onPressed: (){
-
+              // 🔥 FIXED ADD PRODUCT BUTTON
+              goldButton(
+                icon: Icons.add,
+                text: "Add Product",
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_)=>MerchantProducts(
+                      builder: (_) => AddProductScreen(
                         merchantId: merchantId,
+                        category: category,
                       ),
                     ),
                   );
-
                 },
-
               ),
 
-              const SizedBox(height:10),
+              const SizedBox(height: 10),
 
-              ElevatedButton.icon(
-
-                icon: const Icon(Icons.shopping_cart),
-
-                label: const Text("Orders"),
-
-                onPressed: (){
-
+              goldButton(
+                icon: Icons.inventory,
+                text: "My Products",
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_)=>MerchantOrders(
-                        merchantId: merchantId,
-                      ),
+                      builder: (_) =>
+                          MerchantProducts(merchantId: merchantId),
                     ),
                   );
-
                 },
-
               ),
 
-              const SizedBox(height:10),
+              const SizedBox(height: 10),
 
-              ElevatedButton.icon(
-
-                icon: const Icon(Icons.account_balance_wallet),
-
-                label: const Text("Withdraw Money"),
-
-                onPressed: (){
-
+              goldButton(
+                icon: Icons.shopping_cart,
+                text: "Orders",
+                onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_)=>WithdrawScreen(
+                      builder: (_) =>
+                          MerchantOrders(merchantId: merchantId),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 10),
+
+              goldButton(
+                icon: Icons.chat,
+                text: "Customer Chats",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MerchantChatList(
                         merchantId: merchantId,
+                        merchantName: merchantName,
                       ),
                     ),
                   );
-
                 },
-
               ),
 
+              const SizedBox(height: 10),
+
+              goldButton(
+                icon: Icons.wallet,
+                text: "Withdraw Money",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          WithdrawScreen(merchantId: merchantId),
+                    ),
+                  );
+                },
+              ),
             ],
-
           );
-
         },
-
       ),
-
     );
   }
 }

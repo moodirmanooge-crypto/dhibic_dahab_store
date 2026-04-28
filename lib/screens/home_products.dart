@@ -1,198 +1,248 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'product_details.dart';
-import 'merchant_store_screen.dart';
+import 'product_detail.dart';
 
 class HomeProducts extends StatelessWidget {
-  const HomeProducts({super.key});
+  final String searchText;
+  final String selectedCategory;
+
+  const HomeProducts({
+    super.key,
+    required this.searchText,
+    required this.selectedCategory,
+  });
+
+  Future<Map<String, dynamic>?> getMerchant(
+      String merchantId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection("merchant")
+        .doc(merchantId)
+        .get();
+
+    if (!doc.exists) return null;
+    return doc.data();
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return StreamBuilder<QuerySnapshot>(
-
       stream: FirebaseFirestore.instance
           .collection("products")
+          .orderBy("createdAt", descending: true) // 🔥 NEW FIRST
           .snapshots(),
-
-      builder: (context,snapshot){
-
-        if(!snapshot.hasData){
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
           return const Center(
-            child:CircularProgressIndicator(),
+            child: CircularProgressIndicator(),
           );
         }
 
-        var products = snapshot.data!.docs;
+        final query = searchText.toLowerCase().trim();
+
+        final products = snapshot.data!.docs.where((doc) {
+          final data =
+              doc.data() as Map<String, dynamic>;
+
+          final name =
+              data["name"]?.toString().toLowerCase() ??
+                  "";
+
+          final category =
+              data["category"]
+                      ?.toString()
+                      .toLowerCase() ??
+                  "";
+
+          final matchSearch =
+              query.isEmpty ||
+                  name.contains(query) ||
+                  category.contains(query);
+
+          final matchCategory =
+              selectedCategory.toLowerCase() == "all" ||
+                  category ==
+                      selectedCategory.toLowerCase();
+
+          return matchSearch && matchCategory;
+        }).toList();
+
+        if (products.isEmpty) {
+          return const Center(
+            child: Text("No products found"),
+          );
+        }
 
         return GridView.builder(
-
           padding: const EdgeInsets.all(10),
-
           itemCount: products.length,
-
           gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount:2,
-              childAspectRatio:0.72
+              const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.68,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
           ),
+          itemBuilder: (context, index) {
+            final doc = products[index];
+            final data =
+                doc.data() as Map<String, dynamic>;
 
-          itemBuilder:(context,index){
+            final merchantId = data["merchantId"] ?? "";
 
-            var doc = products[index];
-
-            Map<String,dynamic> data =
-            doc.data() as Map<String,dynamic>;
-
-            /// FIX 🔴 merchantId empty error
-            String merchantId = data["merchantId"] ?? "";
-
-            if(merchantId.isEmpty){
-              return const SizedBox();
-            }
-
-            return FutureBuilder<DocumentSnapshot>(
-
-              future: FirebaseFirestore.instance
-                  .collection("merchant")
-                  .doc(merchantId)
-                  .get(),
-
-              builder:(context,merchantSnap){
-
-                String merchantName = "";
-                String merchantImage = "";
-
-                if(merchantSnap.hasData && merchantSnap.data!.exists){
-
-                  Map<String,dynamic> m =
-                  merchantSnap.data!.data() as Map<String,dynamic>;
-
-                  merchantName = m["name"] ?? "";
-                  merchantImage = m["image"] ?? "";
-
+            return FutureBuilder<Map<String, dynamic>?>(
+              future: getMerchant(merchantId),
+              builder: (context, merchantSnap) {
+                if (!merchantSnap.hasData) {
+                  return const SizedBox();
                 }
 
-                return Card(
+                final merchant = merchantSnap.data;
 
-                  elevation:3,
+                final merchantName =
+                    merchant?["merchantName"] ?? "Store";
 
-                  child:Column(
+                final merchantImage =
+                    merchant?["image"] ?? "";
 
-                    children:[
+                final price = double.tryParse(
+                        data["price"].toString()) ??
+                    0;
 
-                      /// PRODUCT IMAGE
-                      Expanded(
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ProductDetail(product: data),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                          BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 6,
+                        )
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                        // 🔥 IMAGE
+                        ClipRRect(
+                          borderRadius:
+                              const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                          child: SizedBox(
+                            height: 140,
+                            width: double.infinity,
+                            child: Image.network(
+                              data["image"] ?? "",
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
 
-                        child:GestureDetector(
-
-                          onTap:(){
-
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:(_)=>ProductDetails(
-                                  productId: doc.id,
-                                  data: data,
+                        Padding(
+                          padding:
+                              const EdgeInsets.all(8),
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              // 🔥 PRODUCT NAME
+                              Text(
+                                data["name"] ?? "",
+                                maxLines: 1,
+                                overflow:
+                                    TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight:
+                                      FontWeight.bold,
                                 ),
                               ),
-                            );
 
-                          },
+                              const SizedBox(height: 4),
 
-                          child:(data["image"] ?? "") != ""
-                              ? Image.network(
-                            data["image"],
-                            fit:BoxFit.cover,
-                            width:double.infinity,
-                          )
-                              : const Icon(Icons.image,size:80),
-
-                        ),
-
-                      ),
-
-                      const SizedBox(height:5),
-
-                      /// PRODUCT NAME
-                      Text(
-                        data["name"] ?? "",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      /// PRICE
-                      Text("\$${data["price"] ?? ""}"),
-
-                      const SizedBox(height:5),
-
-                      /// MERCHANT ROW
-                      GestureDetector(
-
-                        onTap:(){
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_)=>MerchantStoreScreen(
-                                merchantId: merchantId,
+                              // 🔥 DESCRIPTION
+                              Text(
+                                data["description"] ?? "",
+                                maxLines: 2,
+                                overflow:
+                                    TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
                               ),
-                            ),
-                          );
 
-                        },
+                              const SizedBox(height: 6),
 
-                        child:Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children:[
-
-                            CircleAvatar(
-                              radius:10,
-                              backgroundImage:
-                              merchantImage != ""
-                                  ? NetworkImage(merchantImage)
-                                  : null,
-                              child: merchantImage == ""
-                                  ? const Icon(Icons.store,size:12)
-                                  : null,
-                            ),
-
-                            const SizedBox(width:5),
-
-                            Text(
-                              merchantName,
-                              style: const TextStyle(
-                                fontSize:12,
-                                fontWeight: FontWeight.w500,
+                              // 🔥 PRICE
+                              Text(
+                                "\$${price.toStringAsFixed(2)}",
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontWeight:
+                                      FontWeight.bold,
+                                  fontSize: 16,
+                                ),
                               ),
-                            )
 
-                          ],
+                              const SizedBox(height: 6),
+
+                              // 🔥 MERCHANT INFO
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 10,
+                                    backgroundImage:
+                                        merchantImage != ""
+                                            ? NetworkImage(
+                                                merchantImage)
+                                            : null,
+                                    child: merchantImage == ""
+                                        ? const Icon(
+                                            Icons.store,
+                                            size: 12,
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      merchantName,
+                                      maxLines: 1,
+                                      overflow:
+                                          TextOverflow
+                                              .ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-
-                      ),
-
-                      const SizedBox(height:5),
-
-                    ],
-
+                      ],
+                    ),
                   ),
-
                 );
-
               },
-
             );
-
           },
-
         );
-
       },
-
     );
-
   }
-
 }
