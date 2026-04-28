@@ -17,13 +17,11 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.gallad.dhibicdahabshop"
-
     compileSdk = 34
 
     defaultConfig {
         applicationId = "com.gallad.dhibicdahabshop"
-
-        minSdk = flutter.minSdkVersion   // 🔥 muhiim (Flutter + Firebase)
+        minSdk = flutter.minSdkVersion
         targetSdk = 34
 
         versionCode = 19
@@ -53,22 +51,24 @@ android {
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
-            isShrinkResources = false
-
-            // 🔥 DEBUG SIGNING (hadda safe)
-            signingConfig = signingConfigs.getByName("debug")
-        }
-
         debug {
             signingConfig = signingConfigs.getByName("debug")
         }
+
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    // 🔥 muhiim: Kotlin/Java mismatch ka hortag
+    buildFeatures {
+        buildConfig = true
     }
 }
 
 dependencies {
-    // 🔥 muhiim haddii multiDexEnabled = true
     implementation("androidx.multidex:multidex:2.0.1")
 }
 

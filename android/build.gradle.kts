@@ -1,5 +1,4 @@
 import org.gradle.api.tasks.Delete
-import org.gradle.api.file.Directory
 
 buildscript {
     repositories {
@@ -7,8 +6,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // ✅ Kotlin version aligned with settings.gradle.kts
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22")
     }
 }
 
@@ -19,23 +17,6 @@ allprojects {
     }
 }
 
-// (Optional but fine) keep custom build dir
-val newBuildDir: Directory =
-    rootProject.layout.buildDirectory
-        .dir("../../build")
-        .get()
-
-rootProject.layout.buildDirectory.value(newBuildDir)
-
-subprojects {
-    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-    project.layout.buildDirectory.value(newSubprojectBuildDir)
-}
-
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
 tasks.register<Delete>("clean") {
-    delete(rootProject.layout.buildDirectory)
+    delete(rootProject.buildDir)
 }
