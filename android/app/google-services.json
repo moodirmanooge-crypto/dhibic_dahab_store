@@ -8,42 +8,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1004514362082:android:a3b7a387e3f79b26f954bb",
-        "android_client_info": {
-          "package_name": "com.example.dhibic_dahab"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "1004514362082-iurfmpe8obdla2elppgccrnsnl5nsjbg.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyB7Fsx-fN-gdE8PQ1XOxW5RF30wtHso78w"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "1004514362082-iurfmpe8obdla2elppgccrnsnl5nsjbg.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "1004514362082-givtr113ig4ods70bpl2qc9e2a8mkrki.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.dhibicDahab"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:1004514362082:android:00b2b723403064b9f954bb",
         "android_client_info": {
           "package_name": "com.gallad.dhibicdahabshop"

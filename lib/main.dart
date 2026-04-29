@@ -23,13 +23,15 @@ import 'screens/admin_panel.dart';
 import 'screens/delivery/driver_login_screen.dart';
 import 'screens/pdf_viewer_screen.dart';
 
-import 'service/add_service.dart';
+// Waxaan halkan ka saaray import 'service/add_service.dart' sababtoo ah lama isticmaalin
 import 'service/notification_service.dart';
 
-// 🔥 PRELOAD (SPEED)
+// 🔥 PRELOAD (OPTIMIZED)
 Future<void> preloadAppData() async {
-  FirebaseFirestore.instance.collection("products").limit(20).get();
-  FirebaseFirestore.instance.collection("merchant").limit(10).get();
+  await Future.wait([
+    FirebaseFirestore.instance.collection("products").limit(20).get(),
+    FirebaseFirestore.instance.collection("merchant").limit(10).get(),
+  ]);
 }
 
 // 🔥 PROMO
@@ -62,7 +64,7 @@ Future<void> _firebaseMessagingBackgroundHandler(
   await Firebase.initializeApp();
 }
 
-// 🔥 TOKEN (FIXED SAFE)
+// 🔥 TOKEN
 Future<void> saveFcmToken() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
@@ -93,7 +95,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp();
+
+  // 🔥 Ads init SAFE
   await MobileAds.instance.initialize();
+
+  // 🔔 Notifications
   await NotificationService.init();
 
   FirebaseMessaging.onBackgroundMessage(
@@ -106,12 +112,6 @@ Future<void> main() async {
     sound: true,
   );
 
-  // ❌ REMOVE CRASH POINT (user wali ma jiro)
-  // await saveFcmToken();
-
-  preloadAppData();
-  applyPromoIfExists();
-
   FirebaseMessaging.onMessage.listen(
     (RemoteMessage message) {
       NotificationService.showNotification(
@@ -120,8 +120,6 @@ Future<void> main() async {
       );
     },
   );
-
-  AdService.loadAppOpenAd();
 
   runApp(
     MultiProvider(
@@ -190,7 +188,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// 🟢 AUTH GATE (FIXED SAFE TOKEN)
+// 🟢 AUTH GATE
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -210,7 +208,7 @@ class AuthGate extends StatelessWidget {
           return const LoginScreen();
         }
 
-        // 🔥 TOKEN HERE (SAFE)
+        // 🔥 SAFE TOKEN
         saveFcmToken();
 
         return const MainScreen();

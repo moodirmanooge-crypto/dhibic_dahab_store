@@ -22,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String searchText = "";
 
+  // 🔥 DISCOUNT BANNER (SAFE)
   Widget buildDiscountBanner() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -30,6 +31,10 @@ class _HomeScreenState extends State<HomeScreen> {
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 10);
+        }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox();
         }
@@ -82,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // 🔐 ADMIN PASSWORD (SAFE)
   Future<void> showAdminPasswordDialog() async {
     final controller = TextEditingController();
     bool shouldNavigate = false;
@@ -102,17 +108,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final snap = await FirebaseFirestore.instance
-                    .collection("settings")
-                    .doc("admin_access")
-                    .get();
+                try {
+                  final snap = await FirebaseFirestore.instance
+                      .collection("settings")
+                      .doc("admin_access")
+                      .get();
 
-                final password =
-                    snap.data()?["registerPassword"]?.toString() ?? "";
+                  final password =
+                      snap.data()?["registerPassword"]?.toString() ?? "";
 
-                if (controller.text.trim() == password) {
-                  shouldNavigate = true;
-                }
+                  if (controller.text.trim() == password) {
+                    shouldNavigate = true;
+                  }
+                } catch (_) {}
 
                 if (dialogContext.mounted) {
                   Navigator.pop(dialogContext);
@@ -135,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // 📋 MENU
   void handleMenu(String value) {
     if (value == "merchant_login") {
       Navigator.push(
@@ -188,8 +197,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+
       floatingActionButtonLocation:
           FloatingActionButtonLocation.centerDocked,
+
       floatingActionButton: Stack(
         alignment: Alignment.topRight,
         children: [
@@ -241,31 +252,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   buildDiscountBanner(),
 
+                  // 🔥 PRODUCTS SAFE LOAD
                   Expanded(
-                    child: Builder(
-                      builder: (context) {
-                        try {
-                          return HomeProducts(
-                            searchText: searchText,
-                            selectedCategory: "all",
-                          );
-                        } catch (e) {
-                          return const Center(
-                            child: Text("Error loading products"),
-                          );
-                        }
-                      },
+                    child: HomeProducts(
+                      searchText: searchText,
+                      selectedCategory: "all",
                     ),
                   ),
                 ],
               ),
             ),
 
+            // 🔥 PROMO POPUP (OVERLAY SAFE)
             const Positioned.fill(
-              child: IgnorePointer(
-                ignoring: false,
-                child: PromoPopupWidget(),
-              ),
+              child: PromoPopupWidget(),
             ),
           ],
         ),

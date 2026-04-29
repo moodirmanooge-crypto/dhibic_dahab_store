@@ -2,19 +2,18 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services") // ✅ KANI WAA FIX-KA
 }
 
 android {
     namespace = "com.gallad.dhibicdahabshop"
 
-    // 🔥 FIX MAIN ERROR
     compileSdk = 36
 
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -25,12 +24,8 @@ android {
 
     defaultConfig {
         applicationId = "com.gallad.dhibicdahabshop"
-
         minSdk = flutter.minSdkVersion
-        
-        // 🔥 sidoo kale kor u qaad target
         targetSdk = 36
-
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
