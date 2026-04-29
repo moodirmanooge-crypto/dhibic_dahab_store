@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'product_detail.dart';
+import '../screens/product_detail.dart'; // ✅ FIXED PATH
 
 class HomeProducts extends StatelessWidget {
   final String searchText;
@@ -21,8 +21,7 @@ class HomeProducts extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(
-            child:
-                CircularProgressIndicator(),
+            child: CircularProgressIndicator(),
           );
         }
 
@@ -62,14 +61,12 @@ class HomeProducts extends StatelessWidget {
 
         if (products.isEmpty) {
           return const Center(
-            child: Text(
-                "No products found"),
+            child: Text("No products found"),
           );
         }
 
         return GridView.builder(
-          padding:
-              const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(10),
           itemCount: products.length,
           gridDelegate:
               const SliverGridDelegateWithFixedCrossAxisCount(
@@ -78,18 +75,15 @@ class HomeProducts extends StatelessWidget {
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
-          itemBuilder:
-              (context, index) {
-            final doc =
-                products[index];
+          itemBuilder: (context, index) {
+            final doc = products[index];
 
-            final data = doc.data()
-                as Map<String, dynamic>;
-
+            // ✅ FIXED (immutable issue)
+            final data = Map<String, dynamic>.from(
+                doc.data() as Map<String, dynamic>);
             data["id"] = doc.id;
 
-            final image =
-                data["image"] ?? "";
+            final image = data["image"] ?? "";
 
             final price =
                 double.tryParse(
@@ -131,13 +125,11 @@ class HomeProducts extends StatelessWidget {
                 shape:
                     RoundedRectangleBorder(
                   borderRadius:
-                      BorderRadius
-                          .circular(18),
+                      BorderRadius.circular(18),
                 ),
                 child: Column(
                   crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                      CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       flex: 5,
@@ -147,16 +139,12 @@ class HomeProducts extends StatelessWidget {
                             borderRadius:
                                 const BorderRadius
                                     .vertical(
-                              top: Radius
-                                  .circular(
-                                      18),
+                              top: Radius.circular(18),
                             ),
                             child: Image.network(
                               image,
-                              width: double
-                                  .infinity,
-                              fit: BoxFit
-                                  .cover,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
                             ),
                           ),
                           if (discount > 0)
@@ -166,27 +154,21 @@ class HomeProducts extends StatelessWidget {
                               child: Container(
                                 padding:
                                     const EdgeInsets.symmetric(
-                                  horizontal:
-                                      8,
-                                  vertical:
-                                      4,
+                                  horizontal: 8,
+                                  vertical: 4,
                                 ),
                                 decoration:
                                     BoxDecoration(
-                                  color: Colors
-                                      .red,
+                                  color: Colors.red,
                                   borderRadius:
-                                      BorderRadius.circular(
-                                          8),
+                                      BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   "${discount.toInt()}% OFF",
                                   style:
                                       const TextStyle(
-                                    color: Colors
-                                        .white,
-                                    fontSize:
-                                        11,
+                                    color: Colors.white,
+                                    fontSize: 11,
                                   ),
                                 ),
                               ),
@@ -198,25 +180,20 @@ class HomeProducts extends StatelessWidget {
                       flex: 3,
                       child: Padding(
                         padding:
-                            const EdgeInsets
-                                .all(10),
+                            const EdgeInsets.all(10),
                         child: Column(
                           crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
+                              CrossAxisAlignment.start,
                           children: [
                             Text(
-                              data["name"] ??
-                                  "",
+                              data["name"] ?? "",
                               maxLines: 1,
                               overflow:
-                                  TextOverflow
-                                      .ellipsis,
+                                  TextOverflow.ellipsis,
                               style:
                                   const TextStyle(
                                 fontWeight:
-                                    FontWeight
-                                        .bold,
+                                    FontWeight.bold,
                               ),
                             ),
                             const SizedBox(
@@ -224,8 +201,7 @@ class HomeProducts extends StatelessWidget {
                             if (discount > 0)
                               Column(
                                 crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
+                                    CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     "\$${price.toStringAsFixed(2)}",
@@ -233,16 +209,14 @@ class HomeProducts extends StatelessWidget {
                                         const TextStyle(
                                       decoration:
                                           TextDecoration.lineThrough,
-                                      color: Colors
-                                          .grey,
+                                      color: Colors.grey,
                                     ),
                                   ),
                                   Text(
                                     "\$${newPrice.toStringAsFixed(2)}",
                                     style:
                                         const TextStyle(
-                                      color: Colors
-                                          .red,
+                                      color: Colors.red,
                                       fontWeight:
                                           FontWeight.bold,
                                     ),
@@ -254,8 +228,7 @@ class HomeProducts extends StatelessWidget {
                                 "\$${price.toStringAsFixed(2)}",
                                 style:
                                     const TextStyle(
-                                  color: Colors
-                                      .green,
+                                  color: Colors.green,
                                   fontWeight:
                                       FontWeight.bold,
                                 ),

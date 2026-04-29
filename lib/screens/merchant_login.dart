@@ -120,7 +120,7 @@ class _MerchantLoginState
                     BorderRadius
                         .circular(
                             20),
-                boxShadow: [
+                boxShadow: const [ // ✅ FIXED: Added const here
                   BoxShadow(
                     color: Colors
                         .black12,

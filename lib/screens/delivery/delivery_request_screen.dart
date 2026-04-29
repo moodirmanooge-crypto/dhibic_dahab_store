@@ -1,272 +1,158 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:firebase_core/firebase_core.dart'; // ✅ Added
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'providers/language_provider.dart';
-import 'providers/theme_provider.dart';
-
-import 'localization/app_localizations.dart';
-
-import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/categories_screen.dart';
-import 'screens/reading_screen.dart';
-import 'screens/exchange_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/add_product_screen.dart';
-import 'screens/admin_notifications.dart';
-
-// ✅ DELIVERY + DRIVER
-import 'screens/delivery/delivery_request_screen.dart';
-import 'screens/delivery/driver_login_screen.dart';
-
-// 🔥 Messaging Background Handler
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-}
-
-void main() async {
-  // 🔥 INITIALIZE FIREBASE (AS REQUESTED)
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // 🔥 THIS IS THE KEY
-
-  FirebaseMessaging.onBackgroundMessage(
-    _firebaseMessagingBackgroundHandler,
-  );
-
-  await FirebaseMessaging.instance.requestPermission();
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (context) => LanguageProvider()..loadLanguage(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => ThemeProvider()..loadTheme(),
-        ),
-      ],
-      child: const MyApp(),
-    ),
-  );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class DeliveryRequestScreen extends StatefulWidget {
+  final bool usePoints;
+  const DeliveryRequestScreen({super.key, required this.usePoints});
 
   @override
-  Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "Dhibic Dahab",
-
-      locale: langProvider.locale,
-      themeMode: themeProvider.themeMode,
-
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primaryColor: Colors.green,
-        scaffoldBackgroundColor: Colors.grey,
-      ),
-
-      darkTheme: ThemeData.dark(),
-
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        _AppLocalizationsDelegate(),
-      ],
-
-      supportedLocales: const [
-        Locale("en"),
-        Locale("so"),
-        Locale("ar"),
-        Locale("tr"),
-        Locale("de"),
-      ],
-
-      routes: {
-        "/addProduct": (context) {
-          final raw = ModalRoute.of(context)?.settings.arguments;
-
-          if (raw is! Map<String, dynamic>) {
-            return const Scaffold(
-              body: Center(child: Text("Invalid arguments")),
-            );
-          }
-
-          final args = raw;
-
-          return AddProductScreen(
-            merchantId: args["merchantId"]?.toString() ?? "",
-            category: args["category"]?.toString() ?? "",
-          );
-        },
-
-        "/adminNotifications": (context) =>
-            const AdminNotifications(),
-      },
-
-      home: const AuthGate(), // ✅ First Screen
-    );
-  }
+  State<DeliveryRequestScreen> createState() => _DeliveryRequestScreenState();
 }
 
-/// 🔐 AUTH GATE
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+class _DeliveryRequestScreenState extends State<DeliveryRequestScreen> {
+  String? pickupDistrict;
+  String? dropoffDistrict;
+  String? productType;
+  bool isLoading = false;
 
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+  final List<String> districts = ["Hodan", "Wadajir", "Howlwadaag", "Boondheere", "Kaaraan", "Waaberi"];
+  final List<String> products = ["Foods", "Clothes", "Electronics", "Documents", "Others"];
 
-        if (snapshot.hasData) {
-          return const MainScreen();
-        }
+  Future<void> _submitOrder() async {
+    if (pickupDistrict == null || dropoffDistrict == null || productType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Fadlan buuxi meelaha bannaan!")),
+      );
+      return;
+    }
 
-        return const LoginScreen();
-      },
-    );
-  }
-}
+    setState(() => isLoading = true);
 
-/// 🔻 MAIN SCREEN (Bottom Navigation)
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+    try {
+      final user = FirebaseAuth.instance.currentUser;
 
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
+      await FirebaseFirestore.instance.collection('delivery_orders').add({
+        'customerId': user?.uid ?? "anonymous",
+        'customerName': user?.displayName ?? "Unknown User",
+        'pickupDistrict': pickupDistrict,
+        'dropoffDistrict': dropoffDistrict,
+        'productType': productType,
+        'deliveryFee': 1.00,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
-class _MainScreenState extends State<MainScreen> {
-  int currentIndex = 0;
+      if (mounted) {
+        setState(() => isLoading = false);
 
-  @override
-  Widget build(BuildContext context) {
-    final langProvider = Provider.of<LanguageProvider>(context);
-    
-    // ✅ Waxaan halkan ku dhex qeexay liiska screen-nada si looga fogaado error-ka 'currentLang'
-    final List<Widget> screens = [
-      const HomeScreen(),
-      const CategoriesScreen(),
-      const DeliveryRequestScreen(usePoints: false), // ✅ Index 2
-      const ReadingScreen(),
-      const ExchangeScreen(),
-      ProfileScreen(currentLang: langProvider.locale.languageCode), // ✅ Index 5 (La waafajiyey Profile-kaaga cusub)
-    ];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Dhibic Dahab"),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == "merchant") {
-                Navigator.pushNamed(context, "/addProduct");
-              } else if (value == "driver") {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DriverLoginScreen(),
-                  ),
-                );
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: "merchant",
-                child: Text("Merchant Login"),
-              ),
-              const PopupMenuItem(
-                value: "driver",
-                child: Text("Driver Login 🚚"),
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text("Successfully! ✅"),
+            content: const Text("Dalabkaaga waa la gudbiyey. Driver ayaa dhowaan kuu imaan doona."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    pickupDistrict = null;
+                    dropoffDistrict = null;
+                    productType = null;
+                  });
+                },
+                child: const Text("OK"),
               ),
             ],
-          )
-        ],
-      ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Khalad ayaa dhacay: $e")),
+        );
+      }
+    }
+  }
 
-      body: screens[currentIndex],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            const Text(
+              "Dhibic Dahab Delivery 🚚",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 30),
 
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
+            _buildDropdown("Pickup District", pickupDistrict, (val) => setState(() => pickupDistrict = val)),
+            const SizedBox(height: 20),
 
-        onTap: (index) {
-          setState(() {
-            currentIndex = index;
-          });
-        },
+            _buildDropdown("Dropoff District", dropoffDistrict, (val) => setState(() => dropoffDistrict = val)),
+            const SizedBox(height: 20),
 
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: "Categories",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.delivery_dining),
-            label: "Delivery", // ✅ Active Tab
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book),
-            label: "Reading",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.currency_exchange),
-            label: "Exchange",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Profile",
-          ),
-        ],
+            _buildDropdown("Product Type", productType, (val) => setState(() => productType = val), items: products),
+
+            const SizedBox(height: 40),
+
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Column(
+                children: [
+                  Text("Delivery Fee", style: TextStyle(color: Colors.grey)),
+                  Text(
+                    "\$1.00",
+                    style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold, color: Colors.green),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 50),
+
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: isLoading ? null : _submitOrder,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orangeAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("Request Delivery 🚚", style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-}
 
-/// 🌐 LOCALIZATION DELEGATE
-class _AppLocalizationsDelegate
-    extends LocalizationsDelegate<AppLocalizations> {
-
-  const _AppLocalizationsDelegate();
-
-  @override
-  bool isSupported(Locale locale) {
-    return ["en","so","ar","tr","de"]
-        .contains(locale.languageCode);
-  }
-
-  @override
-  Future<AppLocalizations> load(Locale locale) async {
-    return AppLocalizations(locale);
-  }
-
-  @override
-  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) {
-    return false;
+  Widget _buildDropdown(String label, String? value, Function(String?) onChanged, {List<String>? items}) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+        filled: true,
+        fillColor: Colors.grey,
+      ),
+      items: (items ?? districts).map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+      onChanged: onChanged,
+    );
   }
 }

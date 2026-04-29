@@ -13,18 +13,12 @@ class PaymentScreen extends StatefulWidget {
   });
 
   @override
-  State<PaymentScreen> createState() =>
-      _PaymentScreenState();
+  State<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _PaymentScreenState
-    extends State<PaymentScreen> {
-  final TextEditingController phoneController =
-      TextEditingController();
-
-  final TextEditingController pinController =
-      TextEditingController();
-
+class _PaymentScreenState extends State<PaymentScreen> {
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController pinController = TextEditingController();
   bool isLoading = false;
 
   Future<void> _showPaymentSuccessDialog({
@@ -38,20 +32,16 @@ class _PaymentScreenState
       builder: (dialogContext) {
         return Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(25),
           ),
           child: Container(
-            padding:
-                const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius:
-                  BorderRadius.circular(25),
+              borderRadius: BorderRadius.circular(25),
             ),
             child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(
                   Icons.check_circle,
@@ -63,24 +53,20 @@ class _PaymentScreenState
                   "Payment Successful",
                   style: TextStyle(
                     fontSize: 24,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   "Phone: $phone",
-                  style: const TextStyle(
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   "Ref ID: $referenceId",
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -89,54 +75,33 @@ class _PaymentScreenState
                   style: const TextStyle(
                     fontSize: 18,
                     color: Colors.green,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   "Mahadsanid adeegashadaada Dhibic Dahab Online Store.\nFadlan Screenshot ka qaado.",
-                  textAlign:
-                      TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                  ),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 15),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    style:
-                        ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.green,
-                      padding:
-                          const EdgeInsets
-                              .symmetric(
-                        vertical: 14,
-                      ),
-                      shape:
-                          RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius
-                                .circular(
-                                    15),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
                     ),
                     onPressed: () {
-                      Navigator.pop(
-                          dialogContext); // close dialog
-                      Navigator.pop(
-                          context,
-                          true); // return success
+                      Navigator.pop(dialogContext); // close dialog
+                      Navigator.pop(context, true); // return success
                     },
                     child: const Text(
                       "OK",
-                      style: TextStyle(
-                        color:
-                            Colors.white,
-                        fontSize: 18,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
                   ),
                 ),
@@ -150,18 +115,11 @@ class _PaymentScreenState
 
   Future<void> payBook() async {
     try {
-      final user =
-          FirebaseAuth.instance.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw "User not logged in";
 
-      if (user == null) {
-        throw "User not logged in";
-      }
-
-      final phone =
-          phoneController.text.trim();
-
-      final pin =
-          pinController.text.trim();
+      final phone = phoneController.text.trim();
+      final pin = pinController.text.trim();
 
       if (phone.isEmpty || pin.isEmpty) {
         throw "Fadlan geli phone iyo PIN";
@@ -171,66 +129,48 @@ class _PaymentScreenState
         isLoading = true;
       });
 
-      final amount =
-          double.tryParse(
-                widget.book.price.toString(),
-              ) ??
-              0;
+      final amount = double.tryParse(widget.book.price.toString()) ?? 0;
+      final referenceId = "pay_${DateTime.now().millisecondsSinceEpoch}";
 
-      final referenceId =
-          "book_${DateTime.now().millisecondsSinceEpoch}";
-
-      final result =
-          await WaafiPaymentService.makePayment(
+      final result = await WaafiPaymentService.makePayment(
         phone: phone,
         amount: amount,
-        referenceId:
-            referenceId,
-        description:
-            "Book Purchase - ${widget.book.title}",
+        referenceId: referenceId,
+        description: "Purchase - ${widget.book.title}",
       );
 
-      final bool success =
-          result["responseMsg"] ==
-                  "RCS_SUCCESS" ||
-              result["responseCode"]
-                      .toString() ==
-                  "2001";
+      final bool success = result["responseMsg"] == "RCS_SUCCESS" ||
+          result["responseCode"].toString() == "2001";
 
-      if (!success) {
-        throw "Payment failed";
+      if (!success) throw "Payment failed";
+
+      // ✅ KEY CHECK: Haddii uu yahay Buug, ku dar purchased_books
+      if (widget.book.id.isNotEmpty && widget.book.id != "order_checkout") {
+        await FirebaseFirestore.instance
+            .collection("users")
+            .doc(user.uid)
+            .collection("purchased_books")
+            .doc(widget.book.id)
+            .set({
+          "bookId": widget.book.id,
+          "title": widget.book.title,
+          "pdfUrl": widget.book.pdfUrl,
+          "price": widget.book.price,
+          "phone": phone,
+          "paidAt": Timestamp.now(),
+          "isPaid": true,
+        });
       }
 
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .collection("purchased_books")
-          .doc(widget.book.id)
-          .set({
-        "bookId": widget.book.id,
-        "title": widget.book.title,
-        "pdfUrl": widget.book.pdfUrl,
-        "price": widget.book.price,
-        "phone": phone,
-        "paidAt": Timestamp.now(),
-        "isPaid": true,
-      });
-
-      await FirebaseFirestore.instance
-          .collection("notifications")
-          .add({
-        "title":
-            "Buying Book With Customer",
-        "body":
-            "Customer bought a book",
-        "type": "book",
-        "bookId": widget.book.id,
-        "bookTitle":
-            widget.book.title,
+      // ✅ General Notification
+      await FirebaseFirestore.instance.collection("notifications").add({
+        "title": "Payment Received",
+        "body": "Customer paid for: ${widget.book.title}",
+        "type": "payment",
+        "amount": amount,
         "userId": user.uid,
         "customerPhone": phone,
-        "createdAt":
-            FieldValue.serverTimestamp(),
+        "createdAt": FieldValue.serverTimestamp(),
         "isRead": false,
       });
 
@@ -238,19 +178,15 @@ class _PaymentScreenState
 
       await _showPaymentSuccessDialog(
         phone: phone,
-        referenceId:
-            referenceId,
+        referenceId: referenceId,
         amount: amount,
       );
     } catch (e) {
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("❌ $e"),
-          backgroundColor:
-              Colors.red,
+          backgroundColor: Colors.red,
         ),
       );
     } finally {
@@ -270,82 +206,62 @@ class _PaymentScreenState
   }
 
   @override
-  Widget build(
-      BuildContext context) {
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:
-            const Text("Waafi Payment"),
+        title: const Text("Waafi Payment"),
+        backgroundColor: const Color(0xFFD4AF37),
       ),
-      body: Padding(
-        padding:
-            const EdgeInsets.all(20),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Text(
-              widget.book.title,
-              style:
-                  const TextStyle(
-                fontSize: 22,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
+            const Icon(Icons.account_balance_wallet, size: 80, color: Color(0xFFD4AF37)),
             const SizedBox(height: 20),
             Text(
+              widget.book.title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Text(
               "\$${widget.book.price}",
-              style:
-                  const TextStyle(
-                fontSize: 20,
-              ),
+              style: const TextStyle(fontSize: 28, color: Colors.green, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 30),
             TextField(
-              controller:
-                  phoneController,
-              keyboardType:
-                  TextInputType.phone,
-              decoration:
-                  const InputDecoration(
-                labelText:
-                    "Phone Number",
-                border:
-                    OutlineInputBorder(),
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: "Phone Number",
+                prefixIcon: Icon(Icons.phone),
+                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 15),
             TextField(
-              controller:
-                  pinController,
+              controller: pinController,
               obscureText: true,
-              keyboardType:
-                  TextInputType.number,
-              decoration:
-                  const InputDecoration(
-                labelText: "PIN",
-                border:
-                    OutlineInputBorder(),
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "Waafi PIN",
+                prefixIcon: Icon(Icons.lock),
+                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 25),
             SizedBox(
-              width:
-                  double.infinity,
+              width: double.infinity,
               height: 55,
-              child:
-                  ElevatedButton(
-                onPressed:
-                    isLoading
-                        ? null
-                        : payBook,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD4AF37),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                onPressed: isLoading ? null : payBook,
                 child: isLoading
-                    ? const CircularProgressIndicator(
-                        color:
-                            Colors.white,
-                      )
-                    : const Text(
-                        "Pay & Open Book",
-                      ),
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("Pay Now", style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
             ),
           ],

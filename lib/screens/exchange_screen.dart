@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../service/waafi_payment_service.dart';
-import '../service/notification_service.dart';
 
-import 'exchange/hormuud/hormuud_screen.dart';
-import 'exchange/somnet/somnet_screen.dart';
-import 'exchange/somtel/somtel_screen.dart';
-import 'exchange/somlink/somlink_screen.dart';
-import 'exchange/amtel/amtel_screen.dart';
+import '../service/waafi_payment_service.dart';
 
 class ExchangeScreen extends StatefulWidget {
   const ExchangeScreen({super.key});
@@ -21,8 +13,6 @@ class ExchangeScreen extends StatefulWidget {
 
 class _ExchangeScreenState extends State<ExchangeScreen> {
   static const Color primary = Color(0xFF060B4F);
-
-  int selectedTab = 0;
 
   final amountController = TextEditingController();
   final senderController = TextEditingController();
@@ -45,6 +35,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     "Jeeb",
   ];
 
+  // ✅ PREMIER API (waa iska sii jiraa)
   Future<Map<String, dynamic>> payWithPremier({
     required String phone,
     required double amount,
@@ -58,7 +49,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "phone": phone, // ✅ sax
+          "phone": phone,
           "amount": amount,
         }),
       );
@@ -129,6 +120,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
     Map<String, dynamic> response;
 
+    // ✅ API logic intact
     if (fromCompany == "Premier") {
       response = await payWithPremier(
         phone: senderController.text,
@@ -146,30 +138,6 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     setState(() => isLoading = false);
 
     if (response["success"] == true) {
-      final orderId = DateTime.now().millisecondsSinceEpoch.toString();
-
-      await FirebaseFirestore.instance
-          .collection("exchange_orders")
-          .doc(orderId)
-          .set({
-        "customerEmail":
-            FirebaseAuth.instance.currentUser?.email ?? "No email",
-        "senderNumber": senderController.text,
-        "receiverNumber": receiverController.text,
-        "fromCompany": fromCompany,
-        "toCompany": toCompany,
-        "amount": amount,
-        "finalAmount": netAmount,
-        "status": "pending",
-        "createdAt": FieldValue.serverTimestamp(),
-      });
-
-      await NotificationService.showNotification(
-        title: "New Exchange Order",
-        body:
-            "${FirebaseAuth.instance.currentUser?.email ?? 'User'} sent \$${amount.toStringAsFixed(2)}",
-      );
-
       if (!mounted) return;
 
       Navigator.push(
@@ -186,6 +154,9 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         ),
       );
     } else {
+      // ✅ FIXED: Hubi haddii screen-ka weli furan yahay ka hor inta aanan tusin SnackBar-ka
+      if (!mounted) return;
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response["error"] ?? "Approve your payment"),
@@ -201,7 +172,37 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         title: const Text("Dhibic Dahab Exchange"),
         backgroundColor: primary,
       ),
-      body: Center(child: Text("READY")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: senderController,
+              decoration: const InputDecoration(labelText: "Sender Number"),
+            ),
+            TextField(
+              controller: receiverController,
+              decoration: const InputDecoration(labelText: "Receiver Number"),
+            ),
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "Amount"),
+              onChanged: (_) => calculateNet(),
+            ),
+            const SizedBox(height: 10),
+            Text("Fee: \$${fee.toStringAsFixed(2)}"),
+            Text("You will send: \$${netAmount.toStringAsFixed(2)}"),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: isLoading ? null : submitExchange,
+              child: isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text("Send Money"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

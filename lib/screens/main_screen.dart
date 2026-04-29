@@ -10,12 +10,10 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() =>
-      _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState
-    extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> {
   int currentIndex = 0;
 
   late final List<Widget> screens;
@@ -24,39 +22,40 @@ class _MainScreenState
   void initState() {
     super.initState();
 
-    screens = const [
-      HomeScreen(),
-      CategoriesScreen(),
-      DeliveryRequestScreen(
+    // ❌ const removed (important fix)
+    screens = [
+      const HomeScreen(),
+      const CategoriesScreen(),
+      const DeliveryRequestScreen(
         usePoints: false,
       ),
-      ReadingScreen(),
-      ExchangeScreen(),
-      ProfileScreen(),
+      const ReadingScreen(),
+      const ExchangeScreen(),
+      const ProfileScreen(),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // 🔥 SAFE BODY
       body: IndexedStack(
         index: currentIndex,
         children: screens,
       ),
-      bottomNavigationBar:
-          BottomNavigationBar(
+
+      bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
-        selectedItemColor:
-            const Color(0xFFD4AF37),
-        unselectedItemColor:
-            Colors.grey,
-        type:
-            BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFFD4AF37),
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+
         onTap: (index) {
           setState(() {
             currentIndex = index;
           });
         },
+
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -67,8 +66,7 @@ class _MainScreenState
             label: "Categories",
           ),
           BottomNavigationBarItem(
-            icon: Icon(
-                Icons.delivery_dining),
+            icon: Icon(Icons.delivery_dining),
             label: "Delivery",
           ),
           BottomNavigationBarItem(
@@ -76,8 +74,7 @@ class _MainScreenState
             label: "Reading",
           ),
           BottomNavigationBarItem(
-            icon: Icon(
-                Icons.currency_exchange),
+            icon: Icon(Icons.currency_exchange),
             label: "Exchange",
           ),
           BottomNavigationBarItem(

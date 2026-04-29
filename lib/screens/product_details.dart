@@ -33,6 +33,9 @@ class ProductDetails extends StatelessWidget {
 
     });
 
+    // Waxaan halkan ku daray hubinta mounted si looga fogaado async gap error
+    if (!context.mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Added to cart")),
     );

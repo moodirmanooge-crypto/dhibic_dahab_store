@@ -1,8 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'checkout_screen.dart';
+import '../checkout_screen.dart';
 
 class DeliveryScreen extends StatefulWidget {
+  // ✅ Waxaan ku daray 'Key' si looga saaro error-ka koowaad
+  const DeliveryScreen({super.key});
+
   @override
   State<DeliveryScreen> createState() => _DeliveryScreenState();
 }
@@ -94,66 +97,70 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
       price = km * 0.62; // 🔥 halkii KM = 0.62
     });
 
-    print("KM: $km");
+    // ✅ Waxaan u beddelay debugPrint si looga saaro error-ka 'avoid_print'
+    debugPrint("KM: $km");
   }
 
   @override
   Widget build(BuildContext context) {
 
     return Scaffold(
-      appBar: AppBar(title: Text("Delivery 🚚")),
+      appBar: AppBar(title: const Text("Delivery 🚚")), // ✅ const lagu daray
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16), // ✅ const lagu daray
         child: Column(
           children: [
 
             DropdownButtonFormField<String>(
-              value: pickup,
+              // ✅ Waxaan u beddelay initialValue halkii uu ka ahaa value (Deprecated fix)
+              initialValue: pickup,
               items: districtsList.map((e) =>
                   DropdownMenuItem(value: e, child: Text(e))).toList(),
               onChanged: (v) {
                 setState(() => pickup = v!);
                 calculateDistance();
               },
-              decoration: InputDecoration(labelText: "Pickup District"),
+              decoration: const InputDecoration(labelText: "Pickup District"), // ✅ const
             ),
 
-            SizedBox(height: 10),
+            const SizedBox(height: 10), // ✅ const lagu daray
 
             DropdownButtonFormField<String>(
-              value: dropoff,
+              // ✅ Deprecated fix: initialValue
+              initialValue: dropoff,
               items: districtsList.map((e) =>
                   DropdownMenuItem(value: e, child: Text(e))).toList(),
               onChanged: (v) {
                 setState(() => dropoff = v!);
                 calculateDistance();
               },
-              decoration: InputDecoration(labelText: "Dropoff District"),
+              decoration: const InputDecoration(labelText: "Dropoff District"), // ✅ const
             ),
 
-            SizedBox(height: 10),
+            const SizedBox(height: 10), // ✅ const lagu daray
 
             DropdownButtonFormField<String>(
-              value: product,
+              // ✅ Deprecated fix: initialValue
+              initialValue: product,
               items: products.map((e) =>
                   DropdownMenuItem(value: e, child: Text(e))).toList(),
               onChanged: (v) {
                 setState(() => product = v!);
               },
-              decoration: InputDecoration(labelText: "Product Type"),
+              decoration: const InputDecoration(labelText: "Product Type"), // ✅ const
             ),
 
-            SizedBox(height: 30),
+            const SizedBox(height: 30), // ✅ const lagu daray
 
             Text("Distance: ${distance.toStringAsFixed(2)} KM",
-                style: TextStyle(fontSize: 18)),
+                style: const TextStyle(fontSize: 18)), // ✅ const lagu daray
 
-            SizedBox(height: 10),
+            const SizedBox(height: 10), // ✅ const lagu daray
 
             Text("Price: \$${price.toStringAsFixed(2)}",
-                style: TextStyle(fontSize: 20, color: Colors.green)),
+                style: const TextStyle(fontSize: 20, color: Colors.green)), // ✅ const
 
-            SizedBox(height: 30),
+            const SizedBox(height: 30), // ✅ const lagu daray
 
             ElevatedButton(
               onPressed: distance <= 0
@@ -166,7 +173,7 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                         ),
                       );
                     },
-              child: Text("Request Delivery 🚚"),
+              child: const Text("Request Delivery 🚚"), // ✅ const lagu daray
             )
           ],
         ),

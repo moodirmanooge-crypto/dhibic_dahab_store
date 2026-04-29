@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart'; // ✅ debugPrint awgeed
 import 'package:http/http.dart' as http;
 
 class WaafiPaymentService {
@@ -56,9 +57,10 @@ class WaafiPaymentService {
         body: jsonEncode(payload),
       );
 
-      print(
+      // ✅ Waxaan u beddelay debugPrint si looga saaro avoid_print warning
+      debugPrint(
           "STATUS CODE: ${response.statusCode}");
-      print("BODY: ${response.body}");
+      debugPrint("BODY: ${response.body}");
 
       if (response.statusCode != 200) {
         return {
@@ -75,7 +77,8 @@ class WaafiPaymentService {
 
       return decoded;
     } catch (e) {
-      print("WAAFI ERROR: $e");
+      // ✅ Waxaan u beddelay debugPrint
+      debugPrint("WAAFI ERROR: $e");
 
       return {
         "responseMsg":

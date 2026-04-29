@@ -50,12 +50,14 @@ class MerchantProductsScreen extends StatelessWidget {
         .doc(docId)
         .delete();
 
-    await NotificationService.saveAdminNotification(
-      department: "products",
-      title: "Product Deleted",
-      body:
-          "$merchantName removed product: $productName",
+    // ✅ FIXED: Hadda waxaan isticmaaleynaa service-ka si import-ka uusan "unused" u noqon
+    await NotificationService().saveAdminNotification(
+      "Product Deleted",
+      "$merchantName removed product: $productName",
     );
+
+    // ✅ FIXED: mounted check si looga saaro BuildContext async gap error
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

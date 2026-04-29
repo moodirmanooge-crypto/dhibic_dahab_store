@@ -42,6 +42,9 @@ class MerchantDashboard extends StatelessWidget {
         .doc(merchantId)
         .update({"image": url});
 
+    // ✅ FIX
+    if (!context.mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Profile updated")),
     );
@@ -70,6 +73,9 @@ class MerchantDashboard extends StatelessWidget {
       "isActive": true,
       "createdAt": FieldValue.serverTimestamp(),
     });
+
+    // ✅ FIX
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Promo uploaded")),

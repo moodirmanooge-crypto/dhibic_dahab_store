@@ -112,7 +112,7 @@ class OrderHistory extends StatelessWidget {
                   Container(
                     width: 75,
                     height: 75,
-                    color: Colors.grey[300],
+                    color: Colors.grey,
                     child: const Icon(
                         Icons.image),
                   ),
@@ -120,7 +120,7 @@ class OrderHistory extends StatelessWidget {
                 : Container(
               width: 75,
               height: 75,
-              color: Colors.grey[300],
+              color: Colors.grey,
               child: const Icon(
                   Icons.image),
             ),
@@ -148,6 +148,7 @@ class OrderHistory extends StatelessWidget {
                     FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(subtitle),
                 Text(
                   "Total: \$${total.toStringAsFixed(2)}",
@@ -161,6 +162,7 @@ class OrderHistory extends StatelessWidget {
                     FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   date,
                   style: const TextStyle(
@@ -220,16 +222,14 @@ class OrderHistory extends StatelessWidget {
         all = [];
 
         for (var doc in orders.docs) {
-          final data = doc.data()
-          as Map<String, dynamic>;
+          final data = doc.data();
           data["type"] = "shop";
           all.add(data);
         }
 
         for (var doc
         in exchanges.docs) {
-          final data = doc.data()
-          as Map<String, dynamic>;
+          final data = doc.data();
           data["type"] =
           "exchange";
           all.add(data);
@@ -237,8 +237,7 @@ class OrderHistory extends StatelessWidget {
 
         for (var doc
         in deliveries.docs) {
-          final data = doc.data()
-          as Map<String, dynamic>;
+          final data = doc.data();
           data["type"] =
           "delivery";
           all.add(data);
@@ -303,15 +302,19 @@ class OrderHistory extends StatelessWidget {
         stream: getAllOrders(user.uid),
         builder:
             (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child:
               CircularProgressIndicator(),
             );
           }
 
+          if (snapshot.hasError) {
+             return const Center(child: Text("Error loading orders"));
+          }
+
           final allOrders =
-              snapshot.data!;
+              snapshot.data ?? [];
 
           if (allOrders.isEmpty) {
             return const Center(

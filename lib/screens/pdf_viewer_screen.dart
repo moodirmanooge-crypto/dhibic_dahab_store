@@ -59,6 +59,7 @@ class _PdfViewerScreenState
         flush: true,
       );
 
+      // ✅ Xaqiijinta in screen-ku weli furan yahay ka hor intaanan setState la dhihin
       if (!mounted) return;
 
       setState(() {
@@ -106,7 +107,9 @@ class _PdfViewerScreenState
       body: isLoading
           ? const Center(
               child:
-                  CircularProgressIndicator(),
+                  CircularProgressIndicator(
+                    color: Color(0xFFD4AF37), // Midabka App-kaaga
+                  ),
             )
           : hasError
               ? const Center(

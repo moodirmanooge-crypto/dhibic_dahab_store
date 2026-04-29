@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 class DriverScreen extends StatefulWidget {
+  const DriverScreen({super.key}); // ✅ Saxid: Key lagu daray
+
   @override
   State<DriverScreen> createState() => _DriverScreenState();
 }
@@ -17,8 +19,10 @@ class _DriverScreenState extends State<DriverScreen> {
 
     // haddii hore loo qaatay → ha ogolaan
     if (data['status'] == "accepted") {
+      // ✅ Saxid: Hubinta mounted si looga fogaado async gaps
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Order already taken ❌")),
+        const SnackBar(content: Text("Order already taken ❌")),
       );
       return;
     }
@@ -28,8 +32,10 @@ class _DriverScreenState extends State<DriverScreen> {
       "driverId": driverId,
     });
 
+    // ✅ Saxid: Hubinta mounted
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Order accepted ✅")),
+      const SnackBar(content: Text("Order accepted ✅")),
     );
   }
 
@@ -37,7 +43,7 @@ class _DriverScreenState extends State<DriverScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Driver Panel 🚗"),
+        title: const Text("Driver Panel 🚗"), // ✅ Saxid: const lagu daray
         backgroundColor: Colors.orangeAccent,
       ),
 
@@ -46,11 +52,11 @@ class _DriverScreenState extends State<DriverScreen> {
         builder: (context, snapshot) {
 
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator()); // ✅ Saxid: const
           }
 
           if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-            return Center(child: Text("No Orders Available"));
+            return const Center(child: Text("No Orders Available")); // ✅ Saxid: const
           }
 
           final data = Map<String, dynamic>.from(
@@ -66,12 +72,12 @@ class _DriverScreenState extends State<DriverScreen> {
               final order = Map<String, dynamic>.from(orders[index].value);
 
               return Card(
-                margin: EdgeInsets.all(10),
+                margin: const EdgeInsets.all(10), // ✅ Saxid: const
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(12), // ✅ Saxid: const
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -79,19 +85,19 @@ class _DriverScreenState extends State<DriverScreen> {
                       // ROUTE
                       Text(
                         "${order['pickup']} → ${order['dropoff']}",
-                        style: TextStyle(
+                        style: const TextStyle( // ✅ Saxid: const
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
 
-                      SizedBox(height: 6),
+                      const SizedBox(height: 6), // ✅ Saxid: const
 
                       Text("Product: ${order['product']}"),
                       Text("Distance: ${order['distance'].toStringAsFixed(2)} KM"),
                       Text("Price: \$${order['price'].toStringAsFixed(2)}"),
 
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8), // ✅ Saxid: const
 
                       // CUSTOMER INFO
                       if (order['phone'] != null)
@@ -99,11 +105,11 @@ class _DriverScreenState extends State<DriverScreen> {
                       if (order['address'] != null)
                         Text("Address: ${order['address']}"),
 
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8), // ✅ Saxid: const
 
                       Text("Date: ${order['date'] ?? ''}"),
 
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10), // ✅ Saxid: const
 
                       // BUTTON
                       order['status'] == "pending"
@@ -113,17 +119,17 @@ class _DriverScreenState extends State<DriverScreen> {
                               ),
                               onPressed: () =>
                                   acceptOrder(orderId, order),
-                              child: Text("Accept Order"),
+                              child: const Text("Accept Order"), // ✅ Saxid: const
                             )
                           : Container(
-                              padding: EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(8), // ✅ Saxid: const
                               decoration: BoxDecoration(
-                                color: Colors.grey[300],
+                                color: Colors.grey,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 "Taken by ${order['driverId']}",
-                                style: TextStyle(color: Colors.black),
+                                style: const TextStyle(color: Colors.black), // ✅ Saxid: const
                               ),
                             )
                     ],

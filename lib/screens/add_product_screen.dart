@@ -314,7 +314,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
             if (imageFiles.isNotEmpty)
               buildImagePreview(),
 
+            const SizedBox(height: 10),
+
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: Colors.white,
+              ),
               onPressed: isLoading ? null : pickImages,
               child: const Text("Select Images"),
             ),
@@ -339,7 +345,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(height: 10),
 
             DropdownButtonFormField<String>(
-              value: selectedSubCategory,
+              // ✅ FIXED: 'value' was deprecated, replaced with 'initialValue'
+              initialValue: selectedSubCategory,
               hint: const Text("Select Sub Category"),
               items: subList
                   .map((e) => DropdownMenuItem(
@@ -366,11 +373,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
             const SizedBox(height: 20),
 
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: Colors.white,
+              ),
               onPressed:
                   isLoading ? null : addProduct,
               child: isLoading
-                  ? const CircularProgressIndicator(
-                      color: Colors.white,
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                   : const Text("Save Product"),
             ),

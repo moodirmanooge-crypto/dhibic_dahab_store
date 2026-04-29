@@ -137,6 +137,9 @@ class _DriverWalletScreenState
       "status": "pending",
     });
 
+    // ✅ FIX
+    if (!mounted) return;
+
     Navigator.pop(context);
 
     ScaffoldMessenger.of(context)

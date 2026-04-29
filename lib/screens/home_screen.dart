@@ -6,7 +6,7 @@ import 'home_products.dart';
 import 'merchant_login.dart';
 import 'register_login.dart';
 import 'chat/chat_list_screen.dart';
-import 'cart_screen.dart'; // 🔥 ADD THIS
+import 'cart_screen.dart';
 
 import '../widgets/cart_icon.dart';
 import '../widgets/promo_popup_widget.dart';
@@ -16,8 +16,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() =>
-      _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -31,27 +30,19 @@ class _HomeScreenState extends State<HomeScreen> {
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData ||
-            snapshot.data!.docs.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox();
         }
 
         final data =
-            snapshot.data!.docs.first.data()
-                as Map<String, dynamic>;
+            snapshot.data!.docs.first.data() as Map<String, dynamic>;
 
-        final merchantName =
-            data["name"]?.toString() ?? "";
-
-        final merchantImage =
-            data["image"]?.toString() ?? "";
-
-        final discount =
-            data["discountPercent"] ?? 0;
+        final merchantName = data["name"]?.toString() ?? "";
+        final merchantImage = data["image"]?.toString() ?? "";
+        final discount = data["discountPercent"] ?? 0;
 
         return Container(
-          margin: const EdgeInsets.symmetric(
-              horizontal: 12, vertical: 10),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: const Color(0xFFD4AF37),
@@ -61,29 +52,26 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       merchantName,
-                      style: const TextStyle(
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text("🔥 $discount% OFF"),
                   ],
                 ),
               ),
               ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12),
                 child: merchantImage.isNotEmpty
                     ? Image.network(
                         merchantImage,
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const Icon(Icons.store),
                       )
                     : const Icon(Icons.store),
               ),
@@ -96,10 +84,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> showAdminPasswordDialog() async {
     final controller = TextEditingController();
+    bool shouldNavigate = false;
 
     await showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text("Admin Password"),
           content: TextField(
@@ -108,34 +97,25 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text("Cancel"),
             ),
             ElevatedButton(
               onPressed: () async {
-                final snap = await FirebaseFirestore
-                    .instance
+                final snap = await FirebaseFirestore.instance
                     .collection("settings")
                     .doc("admin_access")
                     .get();
 
                 final password =
-                    snap.data()?["registerPassword"]
-                            ?.toString() ??
-                        "";
+                    snap.data()?["registerPassword"]?.toString() ?? "";
 
-                Navigator.pop(context);
+                if (controller.text.trim() == password) {
+                  shouldNavigate = true;
+                }
 
-                if (controller.text.trim() ==
-                    password) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const RegisterLogin(),
-                    ),
-                  );
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
                 }
               },
               child: const Text("OK"),
@@ -144,6 +124,15 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+
+    if (shouldNavigate && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const RegisterLogin(),
+        ),
+      );
+    }
   }
 
   void handleMenu(String value) {
@@ -164,8 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              const ChatListScreen(),
+          builder: (_) => const ChatListScreen(),
         ),
       );
     }
@@ -200,80 +188,87 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-
-      // 🔥 FIXED FLOATING BUTTON
       floatingActionButtonLocation:
           FloatingActionButtonLocation.centerDocked,
-
       floatingActionButton: Stack(
         alignment: Alignment.topRight,
         children: [
           FloatingActionButton(
-            backgroundColor:
-                const Color(0xFF8E44AD),
+            backgroundColor: const Color(0xFF8E44AD),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const CartScreen(),
+                  builder: (_) => const CartScreen(),
                 ),
               );
             },
-            child:
-                const Icon(Icons.shopping_cart),
+            child: const Icon(Icons.shopping_cart),
           ),
-
           if (cart.itemCount > 0)
             Positioned(
               right: 0,
               top: 0,
               child: Container(
-                padding:
-                    const EdgeInsets.all(4),
-                decoration:
-                    const BoxDecoration(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
                   color: Colors.red,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   cart.itemCount.toString(),
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                  ),
+                      color: Colors.white, fontSize: 10),
                 ),
               ),
             ),
         ],
       ),
 
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFFFF8E1),
-                  Color(0xFFD4AF37),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFFFFF8E1),
+                    Color(0xFFD4AF37),
+                  ],
+                ),
+              ),
+              child: Column(
+                children: [
+                  buildDiscountBanner(),
+
+                  Expanded(
+                    child: Builder(
+                      builder: (context) {
+                        try {
+                          return HomeProducts(
+                            searchText: searchText,
+                            selectedCategory: "all",
+                          );
+                        } catch (e) {
+                          return const Center(
+                            child: Text("Error loading products"),
+                          );
+                        }
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
-            child: Column(
-              children: [
-                buildDiscountBanner(),
 
-                Expanded(
-                  child: HomeProducts(
-                    searchText: searchText,
-                    selectedCategory: "all",
-                  ),
-                ),
-              ],
+            const Positioned.fill(
+              child: IgnorePointer(
+                ignoring: false,
+                child: PromoPopupWidget(),
+              ),
             ),
-          ),
-          const PromoPopupWidget(),
-        ],
+          ],
+        ),
       ),
     );
   }

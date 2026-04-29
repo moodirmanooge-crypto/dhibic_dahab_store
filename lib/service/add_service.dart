@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart'; // ✅ debugPrint awgeed ayaa loogu daray
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdService {
@@ -14,10 +15,10 @@ class AdService {
       adLoadCallback: AppOpenAdLoadCallback(
         onAdLoaded: (AppOpenAd ad) {
           _appOpenAd = ad;
-          print("✅ App Open Ad Loaded");
+          debugPrint("✅ App Open Ad Loaded"); // ✅ debugPrint ayaa lagu beddelay
         },
         onAdFailedToLoad: (LoadAdError error) {
-          print("❌ Failed to load ad: $error");
+          debugPrint("❌ Failed to load ad: $error"); // ✅ debugPrint ayaa lagu beddelay
         },
       ),
     );
@@ -31,7 +32,7 @@ class AdService {
       // 🔥 preload next ad
       loadAppOpenAd();
     } else {
-      print("⚠️ No ad available yet");
+      debugPrint("⚠️ No ad available yet"); // ✅ debugPrint ayaa lagu beddelay
     }
   }
 }

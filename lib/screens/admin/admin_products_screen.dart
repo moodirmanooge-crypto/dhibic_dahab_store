@@ -344,7 +344,7 @@ class AdminProductsScreen extends StatelessWidget {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
             ],
           );
         },

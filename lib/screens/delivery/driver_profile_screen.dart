@@ -11,38 +11,36 @@ class DriverProfileScreen extends StatefulWidget {
 }
 
 class _DriverProfileScreenState extends State<DriverProfileScreen> {
-
   final nameController = TextEditingController();
 
   @override
-  Widget build(BuildContext context) {
+  void dispose() {
+    nameController.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Driver Profile 👤")),
-
-      body: FutureBuilder(
+      body: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance
             .collection('drivers')
             .doc(widget.driverId)
             .get(),
-
         builder: (context, snapshot) {
-
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
-
           bool completed = data['profileCompleted'] ?? false;
-
           nameController.text = data['name'] ?? "";
 
           return Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-
                 TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
@@ -51,29 +49,30 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                   ),
                   enabled: !completed,
                 ),
-
                 const SizedBox(height: 20),
-
                 ElevatedButton(
-                  onPressed: completed ? null : () async {
+                  onPressed: completed
+                      ? null
+                      : () async {
+                          await FirebaseFirestore.instance
+                              .collection('drivers')
+                              .doc(widget.driverId)
+                              .update({
+                            "name": nameController.text,
+                            "profileCompleted": true,
+                          });
 
-                    await FirebaseFirestore.instance
-                        .collection('drivers')
-                        .doc(widget.driverId)
-                        .update({
-                      "name": nameController.text,
-                      "profileCompleted": true,
-                    });
+                          // ✅ XALKA: Waxaan u isticmaalnay context.mounted si digniinta loo saaro
+                          if (!context.mounted) return;
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Profile Saved ✅")),
-                    );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Profile Saved ✅")),
+                          );
 
-                    setState(() {});
-                  },
+                          setState(() {});
+                        },
                   child: const Text("Save Profile"),
                 ),
-
                 if (completed)
                   const Padding(
                     padding: EdgeInsets.all(10),

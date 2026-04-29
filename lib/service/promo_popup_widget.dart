@@ -54,7 +54,7 @@ class _PromoPopupWidgetState
                   decoration: BoxDecoration(
                     borderRadius:
                         BorderRadius.circular(20),
-                    boxShadow: [
+                    boxShadow: const [ // 🔥 Halkan 'const' ayaa lagu daray
                       BoxShadow(
                         color: Colors.black26,
                         blurRadius: 10,

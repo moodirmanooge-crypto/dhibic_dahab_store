@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../service/notification_service.dart';
 
-class MerchantProducts extends StatelessWidget {
+class MerchantProducts extends StatefulWidget {
   final String merchantId;
 
   const MerchantProducts({
@@ -10,6 +10,11 @@ class MerchantProducts extends StatelessWidget {
     required this.merchantId,
   });
 
+  @override
+  State<MerchantProducts> createState() => _MerchantProductsState();
+}
+
+class _MerchantProductsState extends State<MerchantProducts> {
   Future<double> getCategoryDiscount(
       String category) async {
     try {
@@ -72,13 +77,14 @@ class MerchantProducts extends StatelessWidget {
 
     await ref.delete();
 
-    await NotificationService
-        .saveAdminNotification(
-      department: "products",
-      title: "Product Removed",
-      body:
-          "Merchant deleted product: $productName",
+    // ✅ FIXED: Isticmaal Service-ka cusub
+    await NotificationService().saveAdminNotification(
+      "Product Removed",
+      "Merchant deleted product: $productName",
     );
+
+    // Hubinta Context ka hor intaan SnackBar la tusin
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -182,7 +188,7 @@ class MerchantProducts extends StatelessWidget {
             .collection("products")
             .where(
               "merchantId",
-              isEqualTo: merchantId,
+              isEqualTo: widget.merchantId,
             )
             .snapshots(),
         builder: (context, snapshot) {

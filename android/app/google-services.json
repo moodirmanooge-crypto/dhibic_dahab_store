@@ -51,11 +51,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "1004514362082-r3obsvl08sueha8tp4trrvm6c9iv4k80.apps.googleusercontent.com",
+          "client_id": "1004514362082-5d4dteldmvnjq4spff1tlt0jfcbom3c8.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.gallad.dhibicdahabshop",
-            "certificate_hash": "e3f313707a8e9e5dee28418c44089631e05cb287"
+            "certificate_hash": "1f77be2f7533fc46192fa1f8c4989d6c094ad11f"
           }
         },
         {

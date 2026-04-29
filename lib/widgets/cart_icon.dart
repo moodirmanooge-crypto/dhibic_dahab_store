@@ -9,10 +9,10 @@ class CartIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    String userId = FirebaseAuth.instance.currentUser!.uid;
+    String userId =
+        FirebaseAuth.instance.currentUser!.uid;
 
     return StreamBuilder<QuerySnapshot>(
-
       stream: FirebaseFirestore.instance
           .collection("cart")
           .doc(userId)
@@ -28,40 +28,31 @@ class CartIcon extends StatelessWidget {
         }
 
         return Stack(
-
           children: [
 
             IconButton(
-
               icon: const Icon(Icons.shopping_cart),
-
-              onPressed: () {
-
+              onPressed: (){
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const CartScreen(),
                   ),
                 );
-
               },
-
             ),
 
+            /// 🔥 BADGE
             if (count > 0)
-
               Positioned(
-                right: 6,
-                top: 6,
+                right: 5,
+                top: 5,
                 child: Container(
-
                   padding: const EdgeInsets.all(4),
-
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Colors.red,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-
                   child: Text(
                     count.toString(),
                     style: const TextStyle(
@@ -69,16 +60,12 @@ class CartIcon extends StatelessWidget {
                       fontSize: 10,
                     ),
                   ),
-
                 ),
-              )
+              ),
 
           ],
-
         );
-
       },
-
     );
   }
 }

@@ -63,7 +63,8 @@ class CustomerOrders extends StatelessWidget {
 
                 child: ListTile(
 
-                  title: Text("Total: \$${total}"),
+                  // ✅ FIXED: Qaansooyinka rukuuca waa laga saaray variable-ka 'total' maadaama uusan loo baahnayn
+                  title: Text("Total: \$$total"),
 
                   subtitle: Text("Status: $status"),
 

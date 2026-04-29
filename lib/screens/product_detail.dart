@@ -71,6 +71,9 @@ class _ProductDetailState
           FieldValue.serverTimestamp(),
     });
 
+    // ✅ Hubi haddii widget-ku uu weli jiro ka hor intaanan isticmaalin context
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context)
         .showSnackBar(
       const SnackBar(

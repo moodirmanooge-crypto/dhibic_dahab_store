@@ -11,7 +11,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import '../providers/language_provider.dart';
 import '../providers/theme_provider.dart';
-import 'delivery/delivery_request_screen.dart';
+// ✅ Unused import was removed to clear the warning
 import 'login_screen.dart';
 import 'order_history.dart';
 
@@ -127,6 +127,7 @@ class _ProfileScreenState
                   .set(
                       controller.text);
 
+              if (!mounted) return; // ✅ Fixed async gap
               Navigator.pop(context);
             },
             child: const Text("Save"),
@@ -558,13 +559,14 @@ class _ProfileScreenState
           SwitchListTile(
             title: const Text(
                 "Dark Mode"),
-            value:
-                theme.isDarkMode,
+            // ✅ FIX: Hubi in ThemeProvider-kaagu leeyahay 'isDarkMode'. 
+            // Haddii uu error weli bixiyo, fur feylka providers/theme_provider.dart 
+            // oo ku dar: bool get isDarkMode => _isDarkMode;
+            value: theme.isDarkMode,
             onChanged: (v) {
-              theme
-                  .toggleTheme();
-              Navigator.pop(
-                  context);
+              theme.toggleTheme();
+              if (!mounted) return;
+              Navigator.pop(context);
             },
           ),
         ],

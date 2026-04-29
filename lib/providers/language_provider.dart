@@ -2,23 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LanguageProvider with ChangeNotifier {
-  Locale _locale = const Locale('en'); // Default waa English
+  Locale _locale = const Locale('en');
 
   Locale get locale => _locale;
 
-  void setLocale(Locale type) async {
-    _locale = type;
-    notifyListeners(); // ✅ Waxay ku amraysaa app-ka inuu dib u dhismo (Rebuild)
+  // 🔄 Change language
+  Future<void> setLocale(Locale newLocale) async {
+    if (_locale == newLocale) return;
 
-    // Kaydi luqadda
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('language_code', type.languageCode);
+    _locale = newLocale;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language_code', newLocale.languageCode);
+
+    notifyListeners();
   }
 
-  void loadLanguage() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String code = prefs.getString('language_code') ?? 'en';
+  // 📥 Load saved language (marka app-ka furmo)
+  Future<void> loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString('language_code') ?? 'en';
+
     _locale = Locale(code);
+
     notifyListeners();
   }
 }

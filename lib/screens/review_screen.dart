@@ -40,6 +40,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
     commentController.clear();
 
+    // Halkan waxaan ku daray hubinta mounted si loo xaliyo error-ka BuildContext
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content:Text("Review submitted"),

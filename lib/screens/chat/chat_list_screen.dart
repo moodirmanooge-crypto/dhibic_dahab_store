@@ -21,9 +21,15 @@ class ChatListScreen extends StatelessWidget {
             )
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text("Weli ma jiraan sheekooyin (Chats)"),
             );
           }
 
@@ -32,33 +38,33 @@ class ChatListScreen extends StatelessWidget {
           return ListView.builder(
             itemCount: docs.length,
             itemBuilder: (context, index) {
-              final data = docs[index].data()
-                  as Map<String, dynamic>;
+              final data = docs[index].data() as Map<String, dynamic>;
 
               return ListTile(
                 leading: const CircleAvatar(
-                  child: Icon(Icons.store),
+                  backgroundColor: Color(0xFFD4AF37),
+                  child: Icon(Icons.store, color: Colors.white),
                 ),
                 title: Text(
-                  "${data["merchantName"]} chatting here",
+                  "${data["merchantName"] ?? "Merchant"}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
-                  data["lastMessage"] ?? "",
+                  data["lastMessage"] ?? "No messages yet",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 trailing: data["customerSeen"] == true
-                    ? const Icon(
-                        Icons.done_all,
-                        color: Colors.blue,
-                      )
+                    ? const Icon(Icons.done_all, color: Colors.blue)
                     : const Icon(Icons.check),
                 onTap: () {
+                  // ✅ Navigator-kan wuxuu u baahan yahay in ChatScreen uu xogtan aqbalo
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => ChatScreen(
                         chatId: docs[index].id,
-                        merchantName:
-                            data["merchantName"],
+                        merchantName: data["merchantName"] ?? "Merchant",
                       ),
                     ),
                   );

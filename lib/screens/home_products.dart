@@ -12,15 +12,18 @@ class HomeProducts extends StatelessWidget {
     required this.selectedCategory,
   });
 
-  Future<Map<String, dynamic>?> getMerchant(
-      String merchantId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection("merchant")
-        .doc(merchantId)
-        .get();
+  Future<Map<String, dynamic>?> getMerchant(String merchantId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("merchant")
+          .doc(merchantId)
+          .get();
 
-    if (!doc.exists) return null;
-    return doc.data();
+      if (!doc.exists) return null;
+      return doc.data();
+    } catch (e) {
+      return null;
+    }
   }
 
   @override
@@ -28,48 +31,42 @@ class HomeProducts extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection("products")
-          .orderBy("createdAt", descending: true) // 🔥 NEW FIRST
+          .orderBy("createdAt", descending: true)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return const Center(child: Text("Error loading products"));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("No products found"));
         }
 
         final query = searchText.toLowerCase().trim();
 
         final products = snapshot.data!.docs.where((doc) {
-          final data =
-              doc.data() as Map<String, dynamic>;
+          final data = doc.data() as Map<String, dynamic>;
 
-          final name =
-              data["name"]?.toString().toLowerCase() ??
-                  "";
+          final name = data["name"]?.toString().toLowerCase() ?? "";
+          final category = data["category"]?.toString().toLowerCase() ?? "";
 
-          final category =
-              data["category"]
-                      ?.toString()
-                      .toLowerCase() ??
-                  "";
-
-          final matchSearch =
-              query.isEmpty ||
-                  name.contains(query) ||
-                  category.contains(query);
+          final matchSearch = query.isEmpty ||
+              name.contains(query) ||
+              category.contains(query);
 
           final matchCategory =
               selectedCategory.toLowerCase() == "all" ||
-                  category ==
-                      selectedCategory.toLowerCase();
+                  category == selectedCategory.toLowerCase();
 
           return matchSearch && matchCategory;
         }).toList();
 
         if (products.isEmpty) {
-          return const Center(
-            child: Text("No products found"),
-          );
+          return const Center(child: Text("No products found"));
         }
 
         return GridView.builder(
@@ -84,18 +81,16 @@ class HomeProducts extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final doc = products[index];
-            final data =
-                doc.data() as Map<String, dynamic>;
+            final data = doc.data() as Map<String, dynamic>;
 
             final merchantId = data["merchantId"] ?? "";
+
+            final price =
+                double.tryParse(data["price"].toString()) ?? 0;
 
             return FutureBuilder<Map<String, dynamic>?>(
               future: getMerchant(merchantId),
               builder: (context, merchantSnap) {
-                if (!merchantSnap.hasData) {
-                  return const SizedBox();
-                }
-
                 final merchant = merchantSnap.data;
 
                 final merchantName =
@@ -104,40 +99,35 @@ class HomeProducts extends StatelessWidget {
                 final merchantImage =
                     merchant?["image"] ?? "";
 
-                final price = double.tryParse(
-                        data["price"].toString()) ??
-                    0;
-
                 return GestureDetector(
                   onTap: () {
+                    // Waxaan isku xidhnay xogta iyo waxa uu filayo ProductDetail
+                    Map productData = Map.from(data);
+                    productData["id"] = doc.id;
+                    productData["merchantName"] = merchantName;
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            ProductDetail(product: data),
+                        builder: (_) => ProductDetail(
+                          product: productData, // 🔥 FIX: Kani waa magaca saxda ah
+                        ),
                       ),
                     );
                   },
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16),
                       boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 6,
-                        )
+                        BoxShadow(color: Colors.black12, blurRadius: 6),
                       ],
                     ),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 🔥 IMAGE
                         ClipRRect(
-                          borderRadius:
-                              const BorderRadius.vertical(
+                          borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(16),
                           ),
                           child: SizedBox(
@@ -146,37 +136,33 @@ class HomeProducts extends StatelessWidget {
                             child: Image.network(
                               data["image"] ?? "",
                               fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const Icon(Icons.image, size: 40),
                             ),
                           ),
                         ),
 
                         Padding(
-                          padding:
-                              const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
                           child: Column(
                             crossAxisAlignment:
                                 CrossAxisAlignment.start,
                             children: [
-                              // 🔥 PRODUCT NAME
                               Text(
                                 data["name"] ?? "",
                                 maxLines: 1,
-                                overflow:
-                                    TextOverflow.ellipsis,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontWeight:
-                                      FontWeight.bold,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
 
                               const SizedBox(height: 4),
 
-                              // 🔥 DESCRIPTION
                               Text(
                                 data["description"] ?? "",
                                 maxLines: 2,
-                                overflow:
-                                    TextOverflow.ellipsis,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 12,
@@ -185,34 +171,27 @@ class HomeProducts extends StatelessWidget {
 
                               const SizedBox(height: 6),
 
-                              // 🔥 PRICE
                               Text(
                                 "\$${price.toStringAsFixed(2)}",
                                 style: const TextStyle(
                                   color: Colors.red,
-                                  fontWeight:
-                                      FontWeight.bold,
+                                  fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),
                               ),
 
                               const SizedBox(height: 6),
 
-                              // 🔥 MERCHANT INFO
                               Row(
                                 children: [
                                   CircleAvatar(
                                     radius: 10,
                                     backgroundImage:
-                                        merchantImage != ""
-                                            ? NetworkImage(
-                                                merchantImage)
+                                        merchantImage.isNotEmpty
+                                            ? NetworkImage(merchantImage)
                                             : null,
-                                    child: merchantImage == ""
-                                        ? const Icon(
-                                            Icons.store,
-                                            size: 12,
-                                          )
+                                    child: merchantImage.isEmpty
+                                        ? const Icon(Icons.store, size: 12)
                                         : null,
                                   ),
                                   const SizedBox(width: 6),
@@ -220,9 +199,7 @@ class HomeProducts extends StatelessWidget {
                                     child: Text(
                                       merchantName,
                                       maxLines: 1,
-                                      overflow:
-                                          TextOverflow
-                                              .ellipsis,
+                                      overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         fontSize: 11,
                                         color: Colors.grey,

@@ -23,7 +23,7 @@ import 'screens/admin_panel.dart';
 import 'screens/delivery/driver_login_screen.dart';
 import 'screens/pdf_viewer_screen.dart';
 
-import 'service/ad_service.dart';
+import 'service/add_service.dart';
 import 'service/notification_service.dart';
 
 // 🔥 PRELOAD (SPEED)
@@ -62,7 +62,7 @@ Future<void> _firebaseMessagingBackgroundHandler(
   await Firebase.initializeApp();
 }
 
-// 🔥 TOKEN
+// 🔥 TOKEN (FIXED SAFE)
 Future<void> saveFcmToken() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
@@ -106,9 +106,9 @@ Future<void> main() async {
     sound: true,
   );
 
-  await saveFcmToken();
+  // ❌ REMOVE CRASH POINT (user wali ma jiro)
+  // await saveFcmToken();
 
-  // 🔥 FAST START (NO WAIT)
   preloadAppData();
   applyPromoIfExists();
 
@@ -179,13 +179,18 @@ class MyApp extends StatelessWidget {
         "/main": (_) => const MainScreen(),
         "/driverLogin": (_) => const DriverLoginScreen(),
         "/adminNotifications": (_) => const AdminNotifications(),
+        "/adminPanel": (_) => const AdminPanel(),
+        "/addProduct": (_) =>
+            const AddProductScreen(merchantId: '', category: ''),
+        "/pdfViewer": (_) =>
+            const PdfViewerScreen(pdfUrl: '', title: ''),
       },
       home: const AuthGate(),
     );
   }
 }
 
-// 🟢 AUTH GATE (🔥 FAST FIX)
+// 🟢 AUTH GATE (FIXED SAFE TOKEN)
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -204,6 +209,9 @@ class AuthGate extends StatelessWidget {
         if (!snapshot.hasData) {
           return const LoginScreen();
         }
+
+        // 🔥 TOKEN HERE (SAFE)
+        saveFcmToken();
 
         return const MainScreen();
       },

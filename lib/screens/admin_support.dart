@@ -70,3 +70,19 @@ class AdminSupport extends StatelessWidget {
   }
 
 }
+
+// ✅ FIX: Waxaan halkaan ku daray Class-kii maqnaa si uu error-ku u baxo.
+// Haddii aad leedahay file kale oo AdminChatScreen ah, iska tirtir koodhka hoose 
+// ka dibna "Import" gareey feylkaas.
+class AdminChatScreen extends StatelessWidget {
+  final String chatId;
+  const AdminChatScreen({super.key, required this.chatId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Chat: $chatId")),
+      body: const Center(child: Text("Chat details will appear here")),
+    );
+  }
+}

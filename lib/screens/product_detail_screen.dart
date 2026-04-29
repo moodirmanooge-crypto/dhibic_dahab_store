@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/waafi_payment_service.dart';
+// ✅ Waxaan saxay Import-ka: 'service' ayaan ka dhigay halkii ay ka ahayd 'services'
+import '../service/waafi_payment_service.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -45,8 +46,7 @@ class _ProductDetailScreenState
               0;
 
       final String merchantId =
-          widget.product["merchantId"]
-              .toString();
+          widget.product["merchantId"]?.toString() ?? "merchant_001";
 
       final String orderId = DateTime.now()
           .millisecondsSinceEpoch
@@ -62,9 +62,12 @@ class _ProductDetailScreenState
             "Purchase ${widget.product["name"]}",
       );
 
-      if (result["responseMsg"] !=
-          "RCS_SUCCESS") {
-        throw "Payment failed";
+      // ✅ FIX: Waxaan ku daray check-ga Response Code-ka saxda ah
+      final bool success = result["responseMsg"] == "RCS_SUCCESS" || 
+                          result["responseCode"].toString() == "2001";
+
+      if (!success) {
+        throw "Payment failed: ${result["responseMsg"]}";
       }
 
       double commission = price * 0.10;
@@ -124,9 +127,11 @@ class _ProductDetailScreenState
         ),
       );
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -181,24 +186,29 @@ class _ProductDetailScreenState
     return Scaffold(
       appBar: AppBar(
         title:
-            Text(widget.product["name"]),
+            Text(widget.product["name"] ?? "Detail"),
+        backgroundColor: const Color(0xFFD4AF37),
       ),
-      body: Padding(
+      body: SingleChildScrollView( // ✅ Lagu daray si haddii keyboard-ku soo baxo uusan error u bixin
         padding:
             const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
           children: [
-            Image.network(
-              widget.product["image"],
-              height: 220,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+            if (widget.product["image"] != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.network(
+                  widget.product["image"],
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
             const SizedBox(height: 20),
             Text(
-              widget.product["name"],
+              widget.product["name"] ?? "Product",
               style:
                   const TextStyle(
                 fontSize: 22,
@@ -213,27 +223,41 @@ class _ProductDetailScreenState
                   const TextStyle(
                 fontSize: 20,
                 color: Colors.green,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 10),
-            Text(
-              widget.product[
-                  "description"],
+            const SizedBox(height: 15),
+            const Text(
+              "Description:",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            const Spacer(),
+            const SizedBox(height: 5),
+            Text(
+              widget.product["description"] ?? "No description available.",
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+            const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
+              height: 50,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD4AF37),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: isLoading
                     ? null
                     : showBuyDialog,
                 child: isLoading
                     ? const CircularProgressIndicator(
-                        color: Colors
-                            .white,
+                        color: Colors.white,
                       )
                     : const Text(
-                        "Buy Now"),
+                        "Buy Now",
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
               ),
             )
           ],

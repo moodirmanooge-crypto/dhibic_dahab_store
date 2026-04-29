@@ -6,8 +6,9 @@ import '../widgets/cart_icon.dart';
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
 
+  // Function-ka soo saaraya Icon-ka saxda ah ee qayb kasta
   IconData getCategoryIcon(String key) {
-    switch (key) {
+    switch (key.toLowerCase()) {
       case "restaurants":
         return Icons.restaurant;
       case "clothes":
@@ -30,9 +31,9 @@ class CategoriesScreen extends StatelessWidget {
     }
   }
 
+  // Check-gareynta haddii category-gu leeyahay Discount
   bool hasDiscount(Map<String, dynamic> data) {
-    final discount =
-        data["discount"]?.toString().trim() ?? "";
+    final discount = data["discount"]?.toString().trim() ?? "";
     return discount.isNotEmpty;
   }
 
@@ -62,17 +63,24 @@ class CategoriesScreen extends StatelessWidget {
             .where("isActive", isEqualTo: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(),
             );
           }
 
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text("No categories found"),
+            );
+          }
+
           final allDocs = snapshot.data!.docs;
 
+          // Shaandheynta (Filtering): Waxaan soo saareynaa kaliya kuwa leh Discount,
+          // waxaana ka saareynaa category-ga "reading".
           final docs = allDocs.where((doc) {
-            final data =
-                doc.data() as Map<String, dynamic>;
+            final data = doc.data() as Map<String, dynamic>;
 
             if (doc.id == "reading") {
               return false;
@@ -83,7 +91,7 @@ class CategoriesScreen extends StatelessWidget {
 
           if (docs.isEmpty) {
             return const Center(
-              child: Text("No categories found"),
+              child: Text("No discounted categories found"),
             );
           }
 
@@ -92,36 +100,31 @@ class CategoriesScreen extends StatelessWidget {
             itemCount: docs.length,
             itemBuilder: (context, index) {
               final doc = docs[index];
-              final data =
-                  doc.data() as Map<String, dynamic>;
-
+              final data = doc.data() as Map<String, dynamic>;
               final categoryKey = doc.id;
 
               return GestureDetector(
                 onTap: () {
-                  // 🔥 IMPORTANT UPDATE
+                  // ✅ U gudubka liiska Merchant-yada ee category-gan hoostaga
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          CategoryMerchantsScreen(
+                      builder: (_) => CategoryMerchantsScreen(
                         category: categoryKey,
                       ),
                     ),
                   );
                 },
                 child: Container(
-                  margin:
-                      const EdgeInsets.only(bottom: 16),
+                  margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37),
-                    borderRadius:
-                        BorderRadius.circular(22),
+                    color: const Color(0xFFD4AF37), // Midabka Dahabka (Dhibic Dahab)
+                    borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black
-                            .withOpacity(0.08),
+                        // ✅ Saxid: withOpacity waxaa loo beddelay withValues
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -130,16 +133,14 @@ class CategoriesScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       Container(
-                        padding:
-                            const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white
-                              .withOpacity(0.15),
+                          // ✅ Saxid: withOpacity waxaa loo beddelay withValues
+                          color: Colors.white.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          getCategoryIcon(
-                              categoryKey),
+                          getCategoryIcon(categoryKey),
                           size: 34,
                           color: Colors.white,
                         ),
@@ -147,59 +148,42 @@ class CategoriesScreen extends StatelessWidget {
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               data["name"] ?? "",
-                              style:
-                                  const TextStyle(
+                              style: const TextStyle(
                                 fontSize: 22,
-                                fontWeight:
-                                    FontWeight.bold,
-                                color:
-                                    Colors.white,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
-                            const SizedBox(
-                                height: 6),
+                            const SizedBox(height: 6),
                             Text(
-                              data["description"] ??
-                                  "",
+                              data["description"] ?? "",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 15,
-                                color: Colors.white
-                                    .withOpacity(
-                                        0.9),
+                                // ✅ Saxid: withOpacity waxaa loo beddelay withValues
+                                color: Colors.white.withValues(alpha: 0.9),
                               ),
                             ),
-                            const SizedBox(
-                                height: 10),
+                            const SizedBox(height: 10),
                             Container(
-                              padding:
-                                  const EdgeInsets
-                                      .symmetric(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 6,
                               ),
-                              decoration:
-                                  BoxDecoration(
+                              decoration: BoxDecoration(
                                 color: Colors.red,
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                            20),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 "🔥 ${data["discount"]}",
-                                style:
-                                    const TextStyle(
-                                  color:
-                                      Colors.white,
-                                  fontWeight:
-                                      FontWeight
-                                          .bold,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
                               ),

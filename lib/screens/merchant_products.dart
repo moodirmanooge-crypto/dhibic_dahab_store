@@ -70,14 +70,18 @@ class MerchantProducts extends StatelessWidget {
 
     if (confirm != true) return;
 
+    // Ka hor inta aan la isticmaalin context ka dib 'await', waa in la hubiyaa haddii uu boggu furan yahay
+    if (!context.mounted) return;
+
     await ref.delete();
 
-    await NotificationService
-        .showNotification(
+    await NotificationService.showNotification(
       title: "Product Removed",
-      body:
-          "Merchant deleted product: $productName",
+      body: "Merchant deleted product: $productName",
     );
+
+    // Mar kale hubi context-ka ka hor inta aan SnackBar la tusin
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

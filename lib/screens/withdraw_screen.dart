@@ -36,6 +36,9 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
 
     });
 
+    // ✅ Hubinta 'mounted' si looga saaro error-ka Context-ka async ka dib
+    if (!mounted) return;
+
     setState(() {
       loading = false;
     });

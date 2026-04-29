@@ -39,18 +39,23 @@ class MerchantOrders extends StatelessWidget {
       "status": "approved",
     });
 
-    await NotificationService
-        .saveAdminNotification(
-      department: "orders",
-      title: "Order Approved",
-      body:
-          "Merchant approved order ${data["orderId"]}",
-    );
+    // ✅ Fixed: Maadaama saveAdminNotification uusan ku jirin NotificationService, 
+    // waxaan si toos ah ugu kaydinaynaa Firestore si errors-ka u baxaan.
+    await FirebaseFirestore.instance.collection("notifications").add({
+      "department": "orders",
+      "title": "Order Approved",
+      "body": "Merchant approved order ${data["orderId"]}",
+      "createdAt": FieldValue.serverTimestamp(),
+      "isRead": false,
+    });
 
     await NotificationService.showNotification(
       title: "Order Approved",
       body: "Customer order approved",
     );
+
+    // ✅ Fixed: mounted check si looga saaro BuildContext async gap error
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

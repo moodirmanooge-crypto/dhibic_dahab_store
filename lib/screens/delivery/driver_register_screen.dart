@@ -16,25 +16,36 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
 
   bool loading = false;
 
-  Future registerDriver() async {
+  Future<void> registerDriver() async {
     setState(() => loading = true);
 
-    await FirebaseFirestore.instance.collection('drivers').add({
-      "username": usernameController.text.trim(),
-      "password": passwordController.text.trim(),
-      "phone": phoneController.text.trim(),
-      "isActive": true,
-      "wallet": 0,
-      "createdAt": Timestamp.now(),
-    });
+    try {
+      await FirebaseFirestore.instance.collection('drivers').add({
+        "username": usernameController.text.trim(),
+        "password": passwordController.text.trim(),
+        "phone": phoneController.text.trim(),
+        "isActive": true,
+        "wallet": 0,
+        "createdAt": Timestamp.now(),
+      });
 
-    setState(() => loading = false);
+      // ✅ Hubinta mounted si looga saaro error-ka Context-ka
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Driver Registered ✅")),
-    );
+      setState(() => loading = false);
 
-    Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Driver Registered ✅")),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
   }
 
   @override
@@ -51,27 +62,27 @@ class _DriverRegisterScreenState extends State<DriverRegisterScreen> {
               decoration: const InputDecoration(labelText: "Username"),
             ),
 
-            SizedBox(height: 15),
+            const SizedBox(height: 15), // ✅ const lagu daray
 
             TextField(
               controller: passwordController,
               decoration: const InputDecoration(labelText: "Password"),
             ),
 
-            SizedBox(height: 15),
+            const SizedBox(height: 15), // ✅ const lagu daray
 
             TextField(
               controller: phoneController,
               decoration: const InputDecoration(labelText: "Phone"),
             ),
 
-            SizedBox(height: 25),
+            const SizedBox(height: 25), // ✅ const lagu daray
 
             ElevatedButton(
               onPressed: loading ? null : registerDriver,
               child: loading
-                  ? CircularProgressIndicator()
-                  : Text("Register"),
+                  ? const CircularProgressIndicator() // ✅ const lagu daray
+                  : const Text("Register"), // ✅ const lagu daray
             )
           ],
         ),

@@ -150,6 +150,17 @@ class NotificationService {
     );
   }
 
+  /// 🔥 ADMIN NOTIFICATION SAVE (Cusub)
+  Future<void> saveAdminNotification(String title, String body) async {
+    await firestore.collection("admin_notifications").add({
+      "title": title,
+      "body": body,
+      "type": "admin_alert",
+      "createdAt": FieldValue.serverTimestamp(),
+      "isRead": false,
+    });
+  }
+
   /// 🔥 ORDER NOTIFICATION SAVE
   static Future<void> saveOrderNotification({
     required String merchantId,

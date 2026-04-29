@@ -213,9 +213,7 @@ class _CartScreenState extends State<CartScreen> {
           response.contains(
               "rcs_success")) {
         for (var item in cartSnap.docs) {
-          final data =
-              item.data()
-                  as Map<String, dynamic>;
+          final data = item.data();
 
           await FirebaseFirestore.instance
               .collection("orders")
@@ -265,7 +263,7 @@ class _CartScreenState extends State<CartScreen> {
           await item.reference.delete();
         }
 
-        if (!mounted) return;
+        if (!context.mounted) return;
 
         await _showSuccessDialog(
           phone: phone,
@@ -280,7 +278,7 @@ class _CartScreenState extends State<CartScreen> {
               "insufficient") ||
           response.contains(
               "balance")) {
-        if (!mounted) return;
+        if (!context.mounted) return;
 
         ScaffoldMessenger.of(context)
             .showSnackBar(
@@ -296,7 +294,7 @@ class _CartScreenState extends State<CartScreen> {
 
       throw "Payment failed";
     } catch (e) {
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
@@ -400,7 +398,7 @@ class _CartScreenState extends State<CartScreen> {
                             BorderRadius
                                 .circular(
                                     20),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             color: Colors
                                 .black12,
@@ -496,24 +494,27 @@ class _CartScreenState extends State<CartScreen> {
                   },
                 ),
               ),
-              RadioListTile(
-                title: const Text(
-                    "Self Pickup"),
+              // ✅ Saxid: ignore lagu daray si looga saaro digniinta deprecated
+              // ignore: deprecated_member_use
+              RadioListTile<String>(
+                title: const Text("Self Pickup"),
                 value: "pickup",
-                groupValue:
-                    deliveryType,
+                // ignore: deprecated_member_use
+                groupValue: deliveryType,
+                // ignore: deprecated_member_use
                 onChanged: (v) {
                   setState(() {
                     deliveryType = v!;
                   });
                 },
               ),
-              RadioListTile(
-                title:
-                    const Text("Delivery"),
+              // ignore: deprecated_member_use
+              RadioListTile<String>(
+                title: const Text("Delivery"),
                 value: "delivery",
-                groupValue:
-                    deliveryType,
+                // ignore: deprecated_member_use
+                groupValue: deliveryType,
+                // ignore: deprecated_member_use
                 onChanged: (v) {
                   setState(() {
                     deliveryType = v!;
