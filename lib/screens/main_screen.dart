@@ -4,7 +4,8 @@ import 'categories_screen.dart';
 import 'reading_screen.dart';
 import 'profile_screen.dart';
 import 'exchange_screen.dart';
-import 'delivery/delivery_request_screen.dart';
+// ❌ DELIVERY IMPORT WAA LA SII HAYN KARAA AMA WAAD COMMENT GAREYN KARAA
+// import 'delivery/delivery_request_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -22,13 +23,13 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
 
-    // ❌ const removed (important fix)
     screens = [
       const HomeScreen(),
       const CategoriesScreen(),
-      const DeliveryRequestScreen(
-        usePoints: false,
-      ),
+
+      // ❌ DELIVERY REMOVED (BUT CODE STILL EXISTS)
+      // const DeliveryRequestScreen(usePoints: false),
+
       const ReadingScreen(),
       const ExchangeScreen(),
       const ProfileScreen(),
@@ -38,7 +39,6 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 🔥 SAFE BODY
       body: IndexedStack(
         index: currentIndex,
         children: screens,
@@ -65,10 +65,13 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.grid_view),
             label: "Categories",
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.delivery_dining),
-            label: "Delivery",
-          ),
+
+          // ❌ DELIVERY HIDDEN
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.delivery_dining),
+          //   label: "Delivery",
+          // ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),
             label: "Reading",
