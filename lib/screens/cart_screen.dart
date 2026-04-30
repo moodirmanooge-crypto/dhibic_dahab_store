@@ -208,10 +208,12 @@ class _CartScreenState extends State<CartScreen> {
                   .toLowerCase() ??
               "";
 
+      // ✅ FIX: ku dar accepted + pending
       if (response.contains("success") ||
           response.contains("approved") ||
-          response.contains(
-              "rcs_success")) {
+          response.contains("rcs_success") ||
+          response.contains("accepted") ||
+          response.contains("pending")) {
         for (var item in cartSnap.docs) {
           final data = item.data();
 

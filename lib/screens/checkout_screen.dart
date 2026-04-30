@@ -1,39 +1,56 @@
 import 'package:flutter/material.dart';
+import '../models/book_model.dart';
+import '../screens/payment_screen.dart';
 
 class CheckoutScreen extends StatelessWidget {
   final double price;
 
-  // ✅ Waxaan ku daray 'Key' si looga saaro error-ka koowaad
   const CheckoutScreen({super.key, required this.price});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Checkout")), // ✅ const lagu daray
+      appBar: AppBar(title: const Text("Checkout")),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ✅ const lagu daray performance-ka awgeed
-            const Text("Total Price", style: TextStyle(fontSize: 20)),
+            const Text(
+              "Total Price",
+              style: TextStyle(fontSize: 20),
+            ),
 
-            const SizedBox(height: 10), // ✅ const lagu daray
+            const SizedBox(height: 10),
 
             Text(
               "\$${price.toStringAsFixed(2)}",
-              style: const TextStyle(fontSize: 28, color: Colors.green), // ✅ const
+              style: const TextStyle(
+                fontSize: 28,
+                color: Colors.green,
+              ),
             ),
 
-            const SizedBox(height: 20), // ✅ const lagu daray
+            const SizedBox(height: 20),
 
             ElevatedButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Order Placed ✅")), // ✅ const
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PaymentScreen(
+                      book: Book(
+                        id: "order_checkout",
+                        title: "Cart Payment",
+                        price: price,
+                        pdfUrl: "",
+                        coverImage: "", // Halkan ayaan ku daray xariiqdan maqnaa
+                      ),
+                    ),
+                  ),
                 );
               },
-              child: const Text("Confirm Order"), // ✅ const lagu daray
-            )
+              child: const Text("Confirm Order"),
+            ),
           ],
         ),
       ),

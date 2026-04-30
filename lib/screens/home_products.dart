@@ -149,7 +149,7 @@ class HomeProducts extends StatelessWidget {
                             data["description"] ?? "",
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle( // Halkan ayaan ku daray 'const'
                               color: Colors.grey,
                               fontSize: 12,
                             ),
