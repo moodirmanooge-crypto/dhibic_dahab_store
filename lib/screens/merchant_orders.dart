@@ -12,9 +12,13 @@ class MerchantOrders extends StatelessWidget {
     required this.merchantId,
   });
 
-  String shortOrderId(String fullId) {
-    if (fullId.length <= 4) return fullId;
-    return fullId.substring(0, 4);
+  String shortOrderId(String id) =>
+      id.length > 4 ? id.substring(0, 4) : id;
+
+  String formatTime(Timestamp? ts) {
+    if (ts == null) return "";
+    final d = ts.toDate();
+    return "${d.day}/${d.month}/${d.year} - ${d.hour}:${d.minute}";
   }
 
   Future<void> approveOrder(
@@ -22,198 +26,166 @@ class MerchantOrders extends StatelessWidget {
     DocumentSnapshot orderDoc,
     Map<String, dynamic> data,
   ) async {
-    final total =
-        (data["total"] ?? 0).toDouble();
+    double total = (data["total"] ?? 0).toDouble();
 
-    await WalletService().updateWallet(
-      merchantId,
-      total,
-    );
+    await WalletService().updateWallet(merchantId, total);
+    await PointsService().addPoints(data["customerId"], total);
 
-    await PointsService().addPoints(
-      data["customerId"],
-      total,
-    );
-
-    await orderDoc.reference.update({
-      "status": "approved",
-    });
-
-    // ✅ Fixed: Maadaama saveAdminNotification uusan ku jirin NotificationService, 
-    // waxaan si toos ah ugu kaydinaynaa Firestore si errors-ka u baxaan.
-    await FirebaseFirestore.instance.collection("notifications").add({
-      "department": "orders",
-      "title": "Order Approved",
-      "body": "Merchant approved order ${data["orderId"]}",
-      "createdAt": FieldValue.serverTimestamp(),
-      "isRead": false,
-    });
+    await orderDoc.reference.update({"status": "approved"});
 
     await NotificationService.showNotification(
       title: "Order Approved",
-      body: "Customer order approved",
+      body: "Order Approved",
     );
 
-    // ✅ Fixed: mounted check si looga saaro BuildContext async gap error
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Approved"),
-      ),
+      const SnackBar(content: Text("Approved")),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          Colors.grey.shade200,
+      backgroundColor: Colors.grey.shade200,
       appBar: AppBar(
-        backgroundColor:
-            const Color(0xFFD4AF37),
+        backgroundColor: const Color(0xFFD4AF37),
         title: const Text("Orders"),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection("orders")
-            .where(
-              "merchantId",
-              isEqualTo: merchantId,
-            )
-            .orderBy(
-              "createdAt",
-              descending: true,
-            )
+            .where("merchantId", isEqualTo: merchantId)
+            .orderBy("createdAt", descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const Center(
-              child:
-                  CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
-          final orders =
-              snapshot.data!.docs;
+          final orders = snapshot.data!.docs;
 
           if (orders.isEmpty) {
-            return const Center(
-              child: Text(
-                "No orders yet",
-              ),
-            );
+            return const Center(child: Text("No orders yet"));
           }
 
           return ListView.builder(
             itemCount: orders.length,
-            itemBuilder:
-                (context, index) {
-              final orderDoc =
-                  orders[index];
+            itemBuilder: (context, index) {
+              final orderDoc = orders[index];
+              final data = orderDoc.data() as Map<String, dynamic>;
 
-              final data =
-                  orderDoc.data()
-                      as Map<String,
-                          dynamic>;
-
-              final total =
-                  (data["total"] ?? 0)
-                      .toDouble();
-
-              final status =
-                  data["status"] ??
-                      "pending";
-
-              final orderId =
-                  data["orderId"] ??
-                      orderDoc.id;
+              final status = data["status"] ?? "pending";
+              final orderId = data["orderId"] ?? "";
 
               return Card(
-                margin:
-                    const EdgeInsets.all(
-                        10),
+                margin: const EdgeInsets.all(10),
                 child: Padding(
-                  padding:
-                      const EdgeInsets
-                          .all(12),
+                  padding: const EdgeInsets.all(12),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment
-                            .start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+
+                      Text(data["productName"] ?? "",
+                          style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
+
+                      Text("Order ID: ${shortOrderId(orderId)}"),
+                      Text("Qty: ${data["quantity"]}"),
                       Text(
-                        data["productName"] ??
-                            "",
-                        style:
-                            const TextStyle(
-                          fontSize: 18,
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
+                        "Total: \$${(data["total"] ?? 0).toString()}",
                       ),
-                      const SizedBox(
-                          height: 6),
+
+                      const Divider(),
+
+                      Text("Sender: ${data["senderPhone"] ?? ""}"),
+                      Text("Receiver: ${data["receiverPhone"] ?? ""}"),
+                      Text("Address: ${data["address"] ?? ""}"),
+                      Text("Type: ${data["deliveryType"] ?? ""}"),
+
                       Text(
-                          "Order ID: ${shortOrderId(orderId)}"),
-                      Text(
-                          "Qty: ${data["quantity"]}"),
-                      Text(
-                          "Customer: ${data["customerName"]}"),
-                      Text(
-                          "Phone: ${data["customerPhone"]}"),
-                      Text(
-                          "Location: ${data["customerLocation"]}"),
-                      Text(
-                        "Total: \$${total.toStringAsFixed(2)}",
+                        "Date: ${formatTime(data["createdAt"])}",
+                        style: const TextStyle(fontSize: 12),
                       ),
+
+                      const Divider(),
+
+                      // 🔥 OTHER MERCHANTS
+                      FutureBuilder<QuerySnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection("orders")
+                            .where("orderId", isEqualTo: orderId)
+                            .get(),
+                        builder: (context, snap) {
+                          if (!snap.hasData) return const SizedBox();
+
+                          final list = snap.data!.docs;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Other Merchants:",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold)),
+
+                              ...list.map((doc) {
+                                final d = doc.data()
+                                    as Map<String, dynamic>;
+
+                                if (d["merchantId"] == merchantId) {
+                                  return const SizedBox();
+                                }
+
+                                return ListTile(
+                                  leading: d["image"] != null
+                                      ? Image.network(d["image"],
+                                          width: 40, height: 40)
+                                      : const Icon(Icons.store),
+
+                                  title: Text(d["merchantName"] ?? ""),
+                                  subtitle: Text(d["merchantPhone"] ?? ""),
+
+                                  trailing: Text(
+                                    d["status"] ?? "",
+                                    style: TextStyle(
+                                      color: d["status"] == "approved"
+                                          ? Colors.green
+                                          : Colors.orange,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 10),
+
                       Text(
                         "Status: $status",
-                        style:
-                            TextStyle(
-                          color: status ==
-                                  "approved"
+                        style: TextStyle(
+                          color: status == "approved"
                               ? Colors.green
                               : Colors.orange,
-                          fontWeight:
-                              FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(
-                          height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child:
-                            ElevatedButton(
-                          style:
-                              ElevatedButton
-                                  .styleFrom(
-                            backgroundColor:
-                                status ==
-                                        "approved"
-                                    ? Colors
-                                        .grey
-                                    : Colors
-                                        .green,
-                          ),
-                          onPressed:
-                              status ==
-                                      "approved"
-                                  ? null
-                                  : () =>
-                                      approveOrder(
-                                        context,
-                                        orderDoc,
-                                        data,
-                                      ),
-                          child: Text(
-                            status ==
-                                    "approved"
-                                ? "Done"
-                                : "Approve",
-                          ),
-                        ),
-                      ),
+
+                      const SizedBox(height: 10),
+
+                      ElevatedButton(
+                        onPressed: status == "approved"
+                            ? null
+                            : () => approveOrder(
+                                  context,
+                                  orderDoc,
+                                  data,
+                                ),
+                        child: Text(
+                            status == "approved" ? "Done" : "Approve"),
+                      )
                     ],
                   ),
                 ),

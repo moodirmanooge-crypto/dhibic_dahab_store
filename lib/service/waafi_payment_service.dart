@@ -14,9 +14,12 @@ class WaafiPaymentService {
         "https://us-central1-dhibic-dahab-online-store.cloudfunctions.net/payWithWaafi",
       );
 
+      // 🔥 FIX: 2 decimal format (IMPORTANT)
+      final fixedAmount = double.parse(amount.toStringAsFixed(2));
+
       final payload = {
         "phone": phone.trim(),
-        "amount": amount.round(), // ✅ integer required by Waafi
+        "amount": fixedAmount, // ✅ FIXED HERE
         "referenceId": referenceId,
         "description": description,
       };
@@ -45,7 +48,6 @@ class WaafiPaymentService {
 
       final decoded = jsonDecode(response.body);
 
-      // ✅ fallback si crash uusan u dhicin
       if (decoded == null || decoded is! Map<String, dynamic>) {
         return {
           "responseMsg": "INVALID RESPONSE",

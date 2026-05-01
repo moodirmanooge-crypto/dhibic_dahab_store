@@ -45,6 +45,8 @@ dependencies:
 
   google_mobile_ads: ^5.1.0
 
+  flutter_windowmanager_plus: ^1.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

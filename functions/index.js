@@ -5,6 +5,22 @@ exports.payWithWaafi = onRequest(async (req, res) => {
   try {
     const { phone, amount, referenceId, description } = req.body;
 
+    // 🔥 FIX: ensure minimum 0.01 + 2 decimal format
+    let parsedAmount = parseFloat(amount);
+
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({
+        error: "Amount must be greater than 0",
+      });
+    }
+
+    if (parsedAmount < 0.01) {
+      parsedAmount = 0.01;
+    }
+
+    // 🔥 IMPORTANT: send as string with 2 decimals
+    const finalAmount = parsedAmount.toFixed(2);
+
     const payload = {
       schemaVersion: "1.0",
       requestId: Date.now().toString(),
@@ -22,7 +38,7 @@ exports.payWithWaafi = onRequest(async (req, res) => {
         transactionInfo: {
           referenceId: referenceId,
           invoiceId: referenceId,
-          amount: Number(amount),
+          amount: finalAmount, // ✅ FIXED HERE
           currency: "USD",
           description: description,
         },

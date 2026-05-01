@@ -19,8 +19,7 @@ class PdfViewer extends StatefulWidget {
       _PdfViewerState();
 }
 
-class _PdfViewerState
-    extends State<PdfViewer> {
+class _PdfViewerState extends State<PdfViewer> {
   String? localPath;
   bool isLoading = true;
 
@@ -43,8 +42,12 @@ class _PdfViewerState
       final dir =
           await getApplicationDocumentsDirectory();
 
-      final file = File(
-          "${dir.path}/${widget.title}.pdf");
+      final safeTitle = widget.title
+          .replaceAll(" ", "_")
+          .replaceAll("/", "_");
+
+      final file =
+          File("${dir.path}/$safeTitle.pdf");
 
       await file.writeAsBytes(
         response.bodyBytes,
@@ -67,25 +70,19 @@ class _PdfViewerState
   }
 
   @override
-  Widget build(
-      BuildContext context) {
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
       body: isLoading
           ? const Center(
-              child:
-                  CircularProgressIndicator(),
+              child: CircularProgressIndicator(),
             )
           : localPath != null
-              ? PDFView(
-                  filePath: localPath!,
-                )
+              ? PDFView(filePath: localPath!)
               : const Center(
-                  child: Text(
-                    "Failed to load PDF",
-                  ),
+                  child: Text("Failed to load PDF"),
                 ),
     );
   }

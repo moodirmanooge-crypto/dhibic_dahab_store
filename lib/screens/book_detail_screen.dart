@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/book_model.dart';
 import 'payment_screen.dart';
+import 'pdf_viewer_screen.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final Book book;
@@ -30,23 +31,7 @@ class _BookDetailScreenState
 
   Future<void> checkPurchase() async {
     try {
-      final double price =
-          double.tryParse(
-                widget.book.price.toString(),
-              ) ??
-              0;
-
-      /// FREE BOOK
-      if (price <= 0) {
-        setState(() {
-          checking = false;
-          isPurchased = true;
-        });
-        return;
-      }
-
-      final user =
-          FirebaseAuth.instance.currentUser;
+      final user = FirebaseAuth.instance.currentUser;
 
       if (user == null) {
         setState(() {
@@ -56,16 +41,14 @@ class _BookDetailScreenState
         return;
       }
 
-      final snap =
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(user.uid)
-              .collection("purchased_books")
-              .doc(widget.book.id)
-              .get();
+      final snap = await FirebaseFirestore.instance
+          .collection("purchased_books")
+          .where("userId", isEqualTo: user.uid)
+          .where("pdfUrl", isEqualTo: widget.book.pdfUrl)
+          .get();
 
       setState(() {
-        isPurchased = snap.exists;
+        isPurchased = snap.docs.isNotEmpty;
         checking = false;
       });
     } catch (e) {
@@ -76,159 +59,99 @@ class _BookDetailScreenState
     }
   }
 
-  void openBook() {
-    Navigator.pushNamed(
-      context,
-      "/pdf",
-      arguments: widget.book.pdfUrl,
-    );
-  }
-
   Future<void> handleAction() async {
-    final double price =
-        double.tryParse(
-              widget.book.price.toString(),
-            ) ??
-            0;
+    final price =
+        double.tryParse(widget.book.price.toString()) ?? 0;
 
-    /// FREE OR ALREADY PAID
+    // FREE or already purchased
     if (price <= 0 || isPurchased) {
-      openBook();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PdfViewerScreen(
+            pdfUrl: widget.book.pdfUrl,
+            title: widget.book.title,
+          ),
+        ),
+      );
       return;
     }
 
-    /// GO TO PAYMENT
+    // PAYMENT
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => PaymentScreen(
-          book: widget.book,
-        ),
+        builder: (_) => PaymentScreen(book: widget.book),
       ),
     );
 
-    /// haddii payment success noqoto
     if (result == true) {
-      await checkPurchase();
+      final user = FirebaseAuth.instance.currentUser;
 
-      if (isPurchased) {
-        openBook(); // si automatic ah u fur
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection("purchased_books")
+            .add({
+          "userId": user.uid,
+          "name": widget.book.title,
+          "image": widget.book.coverImage,
+          "pdfUrl": widget.book.pdfUrl, // ✅ FIXED
+          "createdAt": FieldValue.serverTimestamp(),
+        });
       }
-    } else {
-      await checkPurchase();
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PdfViewerScreen(
+            pdfUrl: widget.book.pdfUrl,
+            title: widget.book.title,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final double price =
-        double.tryParse(
-              widget.book.price.toString(),
-            ) ??
-            0;
-
-    final bool isFree = price <= 0;
+    final price =
+        double.tryParse(widget.book.price.toString()) ?? 0;
 
     if (checking) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.book.title),
-        ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.book.title),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding:
-            const EdgeInsets.all(16),
+      appBar: AppBar(title: Text(widget.book.title)),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.center,
           children: [
-            ClipRRect(
-              borderRadius:
-                  BorderRadius.circular(16),
-              child: Image.network(
-                widget.book.coverImage,
-                height: 230,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, __, ___) {
-                  return Container(
-                    height: 230,
-                    width: double.infinity,
-                    alignment:
-                        Alignment.center,
-                    child: const Icon(
-                      Icons.book,
-                      size: 100,
-                    ),
-                  );
-                },
-              ),
-            ),
-
+            Image.network(widget.book.coverImage, height: 200),
             const SizedBox(height: 20),
-
+            Text(widget.book.title,
+                style: const TextStyle(fontSize: 22)),
+            const SizedBox(height: 10),
             Text(
-              widget.book.title,
-              textAlign:
-                  TextAlign.center,
-              style:
-                  const TextStyle(
-                fontSize: 24,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Text(
-              isFree
+              price <= 0
                   ? "FREE"
                   : isPurchased
                       ? "PAID ✅"
                       : "\$${price.toStringAsFixed(2)}",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight:
-                    FontWeight.bold,
-                color: isFree ||
-                        isPurchased
-                    ? Colors.green
-                    : Colors.black,
-              ),
             ),
-
             const SizedBox(height: 30),
-
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: handleAction,
-                child: Text(
-                  isFree || isPurchased
-                      ? "Read Book"
-                      : "Buy / Pay",
-                  style:
-                      const TextStyle(
-                    fontSize: 18,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
+            ElevatedButton(
+              onPressed: handleAction,
+              child: Text(
+                price <= 0 || isPurchased
+                    ? "Read Book"
+                    : "Buy Book",
               ),
-            ),
+            )
           ],
         ),
       ),

@@ -3,17 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart'; // ✅ UPDATED
 
 class PdfViewerScreen extends StatefulWidget {
   final String pdfUrl;
   final String title;
-  final bool isAdmin;
 
   const PdfViewerScreen({
     super.key,
     required this.pdfUrl,
     required this.title,
-    this.isAdmin = false,
   });
 
   @override
@@ -25,54 +24,41 @@ class _PdfViewerScreenState
     extends State<PdfViewerScreen> {
   String? localPath;
   bool isLoading = true;
-  bool hasError = false;
 
   @override
   void initState() {
     super.initState();
+    secureScreen();
     loadPdf();
+  }
+
+  Future<void> secureScreen() async {
+    await FlutterWindowManagerPlus.addFlags( // ✅ UPDATED
+      FlutterWindowManagerPlus.FLAG_SECURE, // ✅ UPDATED
+    );
   }
 
   Future<void> loadPdf() async {
     try {
-      final response = await http.get(
-        Uri.parse(widget.pdfUrl),
-      );
+      final response = await http.get(Uri.parse(widget.pdfUrl));
 
-      if (response.statusCode != 200) {
-        throw Exception("PDF download failed");
-      }
+      final dir = await getApplicationDocumentsDirectory();
 
-      final dir =
-          await getApplicationDocumentsDirectory();
+      final file = File("${dir.path}/temp.pdf");
 
-      final safeTitle = widget.title
-          .replaceAll(" ", "_")
-          .replaceAll("/", "_");
+      await file.writeAsBytes(response.bodyBytes);
 
-      final file = File(
-        "${dir.path}/$safeTitle.pdf",
-      );
-
-      await file.writeAsBytes(
-        response.bodyBytes,
-        flush: true,
-      );
-
-      // ✅ Xaqiijinta in screen-ku weli furan yahay ka hor intaanan setState la dhihin
       if (!mounted) return;
 
       setState(() {
         localPath = file.path;
         isLoading = false;
-        hasError = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
 
       setState(() {
         isLoading = false;
-        hasError = true;
       });
     }
   }
@@ -80,57 +66,12 @@ class _PdfViewerScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF8F0C8),
-      appBar: AppBar(
-        backgroundColor:
-            const Color(0xFFD4AF37),
-        title: Text(widget.title),
-        centerTitle: true,
-        actions: [
-          if (widget.isAdmin)
-            const Padding(
-              padding:
-                  EdgeInsets.only(right: 12),
-              child: Center(
-                child: Text(
-                  "ADMIN",
-                  style: TextStyle(
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+      appBar: AppBar(title: Text(widget.title)),
       body: isLoading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(
-                    color: Color(0xFFD4AF37), // Midabka App-kaaga
-                  ),
-            )
-          : hasError
-              ? const Center(
-                  child: Text(
-                    "Failed to load PDF",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight:
-                          FontWeight.bold,
-                    ),
-                  ),
-                )
-              : localPath != null
-                  ? PDFView(
-                      filePath: localPath!,
-                    )
-                  : const Center(
-                      child: Text(
-                        "PDF not found",
-                      ),
-                    ),
+          ? const Center(child: CircularProgressIndicator())
+          : localPath != null
+              ? PDFView(filePath: localPath!)
+              : const Center(child: Text("Error loading PDF")),
     );
   }
 }

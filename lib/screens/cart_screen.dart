@@ -7,8 +7,7 @@ class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
 
   @override
-  State<CartScreen> createState() =>
-      _CartScreenState();
+  State<CartScreen> createState() => _CartScreenState();
 }
 
 class _CartScreenState extends State<CartScreen> {
@@ -28,9 +27,7 @@ class _CartScreenState extends State<CartScreen> {
         .doc(userId)
         .collection("items")
         .doc(productId)
-        .update({
-      "quantity": quantity,
-    });
+        .update({"quantity": quantity});
   }
 
   Future<void> removeItem(
@@ -44,8 +41,10 @@ class _CartScreenState extends State<CartScreen> {
         .delete();
   }
 
+  // ✅ SUCCESS POPUP (UPDATED)
   Future<void> _showSuccessDialog({
-    required String phone,
+    required String senderPhone,
+    required String receiverPhone,
     required String orderId,
     required double total,
   }) async {
@@ -55,77 +54,53 @@ class _CartScreenState extends State<CartScreen> {
       builder: (_) {
         return Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(25),
           ),
-          child: Container(
-            padding:
-                const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius:
-                  BorderRadius.circular(25),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.check_circle,
-                  size: 80,
-                  color: Colors.green,
-                ),
-                const SizedBox(height: 15),
+                const Icon(Icons.check_circle,
+                    size: 80, color: Colors.green),
+                const SizedBox(height: 10),
                 const Text(
                   "Payment Successful",
                   style: TextStyle(
-                    fontSize: 22,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 15),
-                Text("Phone: $phone"),
-                const SizedBox(height: 8),
-                Text(
-                  "Order ID: $orderId",
-                  style: const TextStyle(
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                Text("Sender: $senderPhone"),
+                Text("Receiver: $receiverPhone"),
+                const SizedBox(height: 5),
+                Text("Order ID: $orderId",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 5),
                 Text(
                   "Amount: \$${total.toStringAsFixed(2)}",
                   style: const TextStyle(
-                    color: Colors.green,
-                    fontSize: 18,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 15),
+
+                const SizedBox(height: 10),
+
                 const Text(
-                  "Mahadsanid adeegashadaada Dhibic Dahab Online Store\nFadlan form kaan Screenshot ka qaado",
-                  textAlign:
-                      TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style:
-                        ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.green,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(
-                          context);
-                    },
-                    child:
-                        const Text("OK"),
+                  "MACAAMIIL FADLAN\nWARQADAAN RASIIDKA\nSCREENSHOT KAQAADO\nMAHADSANID 🙏",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
                   ),
+                ),
+
+                const SizedBox(height: 15),
+
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
                 )
               ],
             ),
@@ -136,32 +111,23 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> checkout(
-      BuildContext context,
-      String phone) async {
+    BuildContext context,
+    String senderPhone,
+    String receiverPhone,
+    String address,
+    double total,
+  ) async {
     try {
+      if (senderPhone.isEmpty ||
+          receiverPhone.isEmpty ||
+          address.isEmpty) {
+        throw "Fill all fields";
+      }
+
       String userId =
           FirebaseAuth.instance.currentUser!.uid;
 
-      final userDoc =
-          await FirebaseFirestore.instance
-              .collection("users")
-              .doc(userId)
-              .get();
-
-      final userData =
-          userDoc.data() ?? {};
-
-      final customerName =
-          userData["name"] ??
-              userData["fullName"] ??
-              userData["username"] ??
-              "Unknown Customer";
-
-      final customerPhoneFromDb =
-          userData["phone"] ?? phone;
-
-      var cartSnap = await FirebaseFirestore
-          .instance
+      var cartSnap = await FirebaseFirestore.instance
           .collection("cart")
           .doc(userId)
           .collection("items")
@@ -171,32 +137,14 @@ class _CartScreenState extends State<CartScreen> {
         throw "Cart is empty";
       }
 
-      double subtotal = 0;
-
-      for (var item in cartSnap.docs) {
-        subtotal +=
-            (item["price"] ?? 0) *
-                (item["quantity"] ?? 1);
-      }
-
-      double deliveryFee =
-          deliveryType == "pickup"
-              ? 0
-              : 1.0;
-
-      double total =
-          subtotal + deliveryFee;
-
+      // ✅ 4 digit order ID
       String orderId =
-          (1000 +
-                  (DateTime.now()
-                          .millisecondsSinceEpoch %
-                      9000))
+          (1000 + (DateTime.now().millisecondsSinceEpoch % 9000))
               .toString();
 
       final payment =
           await WaafiPaymentService.makePayment(
-        phone: phone,
+        phone: senderPhone,
         amount: total,
         referenceId: orderId,
         description: "Cart Checkout",
@@ -208,58 +156,47 @@ class _CartScreenState extends State<CartScreen> {
                   .toLowerCase() ??
               "";
 
-      // ✅ FIX: ku dar accepted + pending
       if (response.contains("success") ||
           response.contains("approved") ||
-          response.contains("rcs_success") ||
           response.contains("accepted") ||
           response.contains("pending")) {
+
         for (var item in cartSnap.docs) {
           final data = item.data();
+
+          // ✅ IMPORTANT FIX (merchant total)
+          double itemTotal =
+              (data["price"] ?? 0) *
+                  (data["quantity"] ?? 1);
 
           await FirebaseFirestore.instance
               .collection("orders")
               .doc(orderId + item.id)
               .set({
-            "id": orderId + item.id,
             "orderId": orderId,
-            "merchantId":
-                data["merchantId"] ?? "",
-            "merchantName":
-                data["merchantName"] ??
-                    "Unknown Seller",
-            "merchantPhone":
-                data["merchantPhone"] ??
-                    "",
             "customerId": userId,
-            "customerName":
-                customerName,
-            "customerPhone":
-                customerPhoneFromDb,
-            "productName":
-                data["name"] ?? "",
-            "image":
-                data["image"] ?? "",
-            "price":
-                data["price"] ?? 0,
-            "quantity":
-                data["quantity"] ?? 1,
-            "deliveryType":
-                deliveryType,
-            "deliveryFee":
-                deliveryFee,
-            "subtotal": subtotal,
-            "total": total,
-            "paymentResponse":
-                payment,
-            "paymentStatus":
-                "paid",
+
+            "senderPhone": senderPhone,
+            "receiverPhone": receiverPhone,
+            "address": address,
+            "deliveryType": deliveryType,
+
+            // ✅ MERCHANT DATA
+            "merchantId": data["merchantId"] ?? "",
+            "merchantName": data["merchantName"] ?? "",
+            "merchantPhone": data["merchantPhone"] ?? "",
+            "image": data["image"] ?? "",
+
+            // ✅ PRODUCT
+            "productName": data["name"],
+            "price": data["price"],
+            "quantity": data["quantity"],
+
+            // 🔥 FIXED (NOT global total)
+            "total": itemTotal,
+
             "status": "pending",
-            "createdAt":
-                FieldValue
-                    .serverTimestamp(),
-            "date": DateTime.now()
-                .toString(),
+            "createdAt": FieldValue.serverTimestamp(),
           });
 
           await item.reference.delete();
@@ -268,7 +205,8 @@ class _CartScreenState extends State<CartScreen> {
         if (!context.mounted) return;
 
         await _showSuccessDialog(
-          phone: phone,
+          senderPhone: senderPhone,
+          receiverPhone: receiverPhone,
           orderId: orderId,
           total: total,
         );
@@ -276,34 +214,12 @@ class _CartScreenState extends State<CartScreen> {
         return;
       }
 
-      if (response.contains(
-              "insufficient") ||
-          response.contains(
-              "balance")) {
-        if (!context.mounted) return;
-
-        ScaffoldMessenger.of(context)
-            .showSnackBar(
-          const SnackBar(
-            content: Text(
-                "❌ Fadlan marka hore lacag kushubo"),
-            backgroundColor:
-                Colors.red,
-          ),
-        );
-        return;
-      }
-
       throw "Payment failed";
     } catch (e) {
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        SnackBar(
-          content: Text("❌ $e"),
-          backgroundColor: Colors.red,
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ $e")),
       );
     }
   }
@@ -314,13 +230,8 @@ class _CartScreenState extends State<CartScreen> {
         FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
-      backgroundColor:
-          const Color(0xFFF5E6A9),
-      appBar: AppBar(
-        backgroundColor:
-            const Color(0xFFD4AF37),
-        title: const Text("Cart"),
-      ),
+      backgroundColor: const Color(0xFFF5E6A9),
+      appBar: AppBar(title: const Text("Cart")),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection("cart")
@@ -330,15 +241,12 @@ class _CartScreenState extends State<CartScreen> {
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(
-              child:
-                  CircularProgressIndicator(),
-            );
+                child: CircularProgressIndicator());
           }
 
           var items = snapshot.data!.docs;
 
           double subtotal = 0;
-
           for (var item in items) {
             subtotal +=
                 (item["price"] ?? 0) *
@@ -346,258 +254,176 @@ class _CartScreenState extends State<CartScreen> {
           }
 
           double delivery =
-              deliveryType ==
-                      "pickup"
-                  ? 0
-                  : 1;
+              deliveryType == "pickup" ? 0 : 1;
 
-          double total =
-              subtotal + delivery;
+          double total = subtotal + delivery;
 
           return Column(
             children: [
-              Container(
-                margin:
-                    const EdgeInsets.all(15),
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(
-                          20),
-                  image:
-                      const DecorationImage(
-                    image: AssetImage(
-                      "assets/images/delivery_bike.png",
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color:
-                          Colors.black12,
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-              ),
               Expanded(
                 child: ListView.builder(
                   itemCount: items.length,
-                  itemBuilder:
-                      (context, index) {
+                  itemBuilder: (context, index) {
                     var item = items[index];
 
                     return Container(
-                      margin:
-                          const EdgeInsets
-                              .all(8),
-                      decoration:
-                          BoxDecoration(
-                        color:
-                            Colors.white,
+                      margin: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius:
-                            BorderRadius
-                                .circular(
-                                    20),
+                            BorderRadius.circular(20),
                         boxShadow: const [
                           BoxShadow(
-                            color: Colors
-                                .black12,
-                            blurRadius:
-                                8,
-                          ),
+                              blurRadius: 5,
+                              color: Colors.black12)
                         ],
                       ),
-                      child: ListTile(
-                        leading:
-                            ClipRRect(
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                                      10),
-                          child:
-                              Image.network(
-                            item["image"],
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit
-                                .cover,
-                          ),
-                        ),
-                        title: Text(
-                          item["name"],
-                          style:
-                              const TextStyle(
-                            fontWeight:
-                                FontWeight
-                                    .bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          "\$${item["price"]}",
-                          style:
-                              const TextStyle(
-                            color: Colors
-                                .green,
-                            fontWeight:
-                                FontWeight
-                                    .bold,
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize:
-                              MainAxisSize
-                                  .min,
-                          children: [
-                            IconButton(
-                              onPressed:
-                                  () {
-                                updateQuantity(
-                                  userId,
-                                  item.id,
-                                  item["quantity"] -
-                                      1,
-                                );
-                              },
-                              icon:
-                                  const Icon(
-                                Icons
-                                    .remove_circle,
-                                color: Colors
-                                    .red,
-                              ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(10),
+                            child: Image.network(
+                              item["image"],
+                              width: 70,
+                              height: 70,
+                              fit: BoxFit.cover,
                             ),
-                            Text(item[
-                                    "quantity"]
-                                .toString()),
-                            IconButton(
-                              onPressed:
-                                  () {
-                                updateQuantity(
-                                  userId,
-                                  item.id,
-                                  item["quantity"] +
-                                      1,
-                                );
-                              },
-                              icon:
-                                  const Icon(
-                                Icons
-                                    .add_circle,
-                                color: Colors
-                                    .green,
-                              ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(item["name"],
+                                    style: const TextStyle(
+                                        fontWeight:
+                                            FontWeight.bold)),
+                                Text("\$${item["price"]}",
+                                    style: const TextStyle(
+                                        color: Colors.green)),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                    Icons.remove_circle,
+                                    color: Colors.red),
+                                onPressed: () {
+                                  updateQuantity(
+                                    userId,
+                                    item.id,
+                                    item["quantity"] - 1,
+                                  );
+                                },
+                              ),
+                              Text(item["quantity"].toString()),
+                              IconButton(
+                                icon: const Icon(
+                                    Icons.add_circle,
+                                    color: Colors.green),
+                                onPressed: () {
+                                  updateQuantity(
+                                    userId,
+                                    item.id,
+                                    item["quantity"] + 1,
+                                  );
+                                },
+                              ),
+                            ],
+                          )
+                        ],
                       ),
                     );
                   },
                 ),
               ),
-              // ✅ Saxid: ignore lagu daray si looga saaro digniinta deprecated
-              // ignore: deprecated_member_use
+
               RadioListTile<String>(
                 title: const Text("Self Pickup"),
                 value: "pickup",
-                // ignore: deprecated_member_use
                 groupValue: deliveryType,
-                // ignore: deprecated_member_use
-                onChanged: (v) {
-                  setState(() {
-                    deliveryType = v!;
-                  });
-                },
+                onChanged: (v) =>
+                    setState(() => deliveryType = v!),
               ),
-              // ignore: deprecated_member_use
               RadioListTile<String>(
-                title: const Text("Delivery"),
+                title: const Text("Delivery (+\$1)"),
                 value: "delivery",
-                // ignore: deprecated_member_use
                 groupValue: deliveryType,
-                // ignore: deprecated_member_use
-                onChanged: (v) {
-                  setState(() {
-                    deliveryType = v!;
-                  });
-                },
+                onChanged: (v) =>
+                    setState(() => deliveryType = v!),
               ),
+
               Padding(
-                padding:
-                    const EdgeInsets.all(
-                        16),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    Text("Subtotal: \$${subtotal.toStringAsFixed(2)}"),
+                    Text("Delivery: \$${delivery.toStringAsFixed(2)}"),
                     Text(
-                        "Subtotal: \$$subtotal"),
-                    Text(
-                        "Delivery: \$$delivery"),
-                    Text(
-                      "Total: \$$total",
-                      style:
-                          const TextStyle(
-                        fontWeight:
-                            FontWeight
-                                .bold,
-                        fontSize: 18,
-                      ),
+                      "Total: \$${total.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18),
                     ),
-                    const SizedBox(
-                        height: 15),
+                    const SizedBox(height: 10),
+
                     ElevatedButton(
-                      style:
-                          ElevatedButton
-                              .styleFrom(
-                        backgroundColor:
-                            const Color(
-                                0xFFD4AF37),
-                      ),
                       onPressed: () {
-                        final phoneController =
+                        final sender =
+                            TextEditingController();
+                        final receiver =
+                            TextEditingController();
+                        final address =
                             TextEditingController();
 
                         showDialog(
                           context: context,
-                          builder: (_) {
-                            return AlertDialog(
-                              title:
-                                  const Text(
-                                      "Payment"),
-                              content:
-                                  TextField(
-                                controller:
-                                    phoneController,
-                                decoration:
-                                    const InputDecoration(
-                                  labelText:
-                                      "Phone",
+                          builder: (_) => AlertDialog(
+                            title: const Text("Payment"),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextField(
+                                  controller: sender,
+                                  decoration:
+                                      const InputDecoration(labelText: "Your Phone"),
                                 ),
-                              ),
-                              actions: [
-                                ElevatedButton(
-                                  onPressed:
-                                      () {
-                                    Navigator.pop(
-                                        context);
-                                    checkout(
-                                      context,
-                                      phoneController
-                                          .text,
-                                    );
-                                  },
-                                  child:
-                                      const Text(
-                                          "Pay"),
-                                )
+                                TextField(
+                                  controller: receiver,
+                                  decoration:
+                                      const InputDecoration(labelText: "Receiver Phone"),
+                                ),
+                                TextField(
+                                  controller: address,
+                                  decoration:
+                                      const InputDecoration(labelText: "Address"),
+                                ),
                               ],
-                            );
-                          },
+                            ),
+                            actions: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  checkout(
+                                    context,
+                                    sender.text.trim(),
+                                    receiver.text.trim(),
+                                    address.text.trim(),
+                                    total,
+                                  );
+                                },
+                                child: const Text("Pay"),
+                              )
+                            ],
+                          ),
                         );
                       },
-                      child:
-                          const Text(
-                              "Checkout"),
+                      child: const Text("Checkout"),
                     )
                   ],
                 ),

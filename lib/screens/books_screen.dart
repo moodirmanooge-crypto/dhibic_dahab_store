@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/book_model.dart';
 import 'book_detail_screen.dart';
+import 'my_books_screen.dart'; // Hubi in magaca file-kan uu sax yahay
 
 class BooksScreen extends StatelessWidget {
   const BooksScreen({super.key});
@@ -11,6 +12,19 @@ class BooksScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Books"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.menu_book),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const MyBooksScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'product_detail.dart';
 
 class HomeProducts extends StatelessWidget {
@@ -12,12 +13,37 @@ class HomeProducts extends StatelessWidget {
     required this.selectedCategory,
   });
 
+  Future<void> addToCart(BuildContext context, String docId, Map<String, dynamic> data) async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    await FirebaseFirestore.instance
+        .collection("cart")
+        .doc(userId)
+        .collection("items")
+        .doc(docId)
+        .set({
+      "name": data["name"],
+      "price": data["price"],
+      "image": data["image"],
+      "quantity": 1,
+
+      // 🔥 muhiim (merchant data si order u shaqeeyo)
+      "merchantId": data["merchantId"] ?? "",
+      "merchantName": data["merchantName"] ?? "",
+      "merchantPhone": data["merchantPhone"] ?? "",
+    }, SetOptions(merge: true));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Added to cart")),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection("products")
-          .limit(30) // 🔥 muhiim (prevent heavy load)
+          .limit(30)
           .snapshots(),
       builder: (context, snapshot) {
 
@@ -62,7 +88,7 @@ class HomeProducts extends StatelessWidget {
           gridDelegate:
               const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 0.68,
+            childAspectRatio: 0.58,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
@@ -73,41 +99,40 @@ class HomeProducts extends StatelessWidget {
             final price =
                 double.tryParse(data["price"].toString()) ?? 0;
 
-            // ✅ UPDATE: Merchant info direct from product data
             final merchantName =
                 data["merchantName"] ?? "Store"; 
 
             final merchantImage =
                 data["merchantImage"] ?? "";
 
-            return GestureDetector(
-              onTap: () {
-                Map productData = Map.from(data);
-                productData["id"] = doc.id;
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 6),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProductDetail(
-                      product: productData,
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 6),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  // 🔥 IMAGE CLICK → DETAIL
+                  GestureDetector(
+                    onTap: () {
+                      Map productData = Map.from(data);
+                      productData["id"] = doc.id;
 
-                    // 🔥 IMAGE SAFE
-                    ClipRRect(
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetail(
+                            product: productData,
+                          ),
+                        ),
+                      );
+                    },
+                    child: ClipRRect(
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(16),
                       ),
@@ -127,77 +152,103 @@ class HomeProducts extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ),
 
-                    Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
 
-                          Text(
-                            data["name"] ?? "",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        Text(
+                          data["name"] ?? "",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
                           ),
+                        ),
 
-                          const SizedBox(height: 4),
+                        const SizedBox(height: 4),
 
-                          Text(
-                            data["description"] ?? "",
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle( // Halkan ayaan ku daray 'const'
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
+                        Text(
+                          data["description"] ?? "",
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
                           ),
+                        ),
 
-                          const SizedBox(height: 6),
+                        const SizedBox(height: 6),
 
-                          Text(
-                            "\$${price.toStringAsFixed(2)}",
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                        Text(
+                          "\$${price.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
+                        ),
 
-                          const SizedBox(height: 6),
+                        const SizedBox(height: 6),
 
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 10,
-                                backgroundImage: merchantImage.isNotEmpty
-                                    ? NetworkImage(merchantImage)
-                                    : null,
-                                child: merchantImage.isEmpty
-                                    ? const Icon(Icons.store, size: 12)
-                                    : null,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  merchantName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey,
-                                  ),
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 10,
+                              backgroundImage: merchantImage.isNotEmpty
+                                  ? NetworkImage(merchantImage)
+                                  : null,
+                              child: merchantImage.isEmpty
+                                  ? const Icon(Icons.store, size: 12)
+                                  : null,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                merchantName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
                                 ),
                               ),
-                            ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 🔥 ADD TO CART BUTTON (NEW)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 36,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                        ],
+                        ),
+                        onPressed: () {
+                          addToCart(context, doc.id, data);
+                        },
+                        child: const Text(
+                          "Add to Cart",
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 6),
+                ],
               ),
             );
           },

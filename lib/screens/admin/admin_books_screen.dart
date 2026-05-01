@@ -39,156 +39,98 @@ class AdminBooksScreen extends StatelessWidget {
             builder: (context, purchaseSnapshot) {
               if (!purchaseSnapshot.hasData) {
                 return const Center(
-                  child:
-                      CircularProgressIndicator(),
+                  child: CircularProgressIndicator(),
                 );
               }
 
-              final books =
-                  bookSnapshot.data!.docs;
-              final purchases =
-                  purchaseSnapshot.data!.docs;
+              final books = bookSnapshot.data!.docs;
+              final purchases = purchaseSnapshot.data!.docs;
 
               double totalRevenue = 0;
 
               for (var book in books) {
-                final data = book.data()
-                    as Map<String, dynamic>;
-
-                totalRevenue += parseDouble(
-                  data["price"],
-                );
+                final data = book.data() as Map<String, dynamic>;
+                totalRevenue += parseDouble(data["price"]);
               }
 
               return Column(
                 children: [
                   Container(
                     width: double.infinity,
-                    margin:
-                        const EdgeInsets.all(15),
-                    padding:
-                        const EdgeInsets.all(16),
+                    margin: const EdgeInsets.all(15),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(
-                              20),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           "Total Books: ${books.length}",
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             fontSize: 22,
-                            fontWeight:
-                                FontWeight.bold,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
                           "Sold: ${purchases.length}",
-                          style:
-                              const TextStyle(
-                            fontSize: 18,
-                          ),
+                          style: const TextStyle(fontSize: 18),
                         ),
                         Text(
                           "Revenue: \$${totalRevenue.toStringAsFixed(2)}",
-                          style:
-                              const TextStyle(
-                            fontSize: 18,
-                          ),
+                          style: const TextStyle(fontSize: 18),
                         ),
                       ],
                     ),
                   ),
+
                   Expanded(
                     child: ListView.builder(
                       itemCount: books.length,
-                      itemBuilder:
-                          (context, index) {
+                      itemBuilder: (context, index) {
                         final doc = books[index];
+                        final book = doc.data() as Map<String, dynamic>;
 
-                        final book = doc.data()
-                            as Map<String,
-                                dynamic>;
-
-                        final title =
-                            book["title"] ??
-                                "Unknown Book";
-
-                        final image =
-                            book["image"] ??
-                                "";
-
-                        final price =
-                            parseDouble(
-                          book["price"],
-                        );
-
-                        final pdfUrl =
-                            book["pdfUrl"] ??
-                                "";
+                        final title = book["title"] ?? "Unknown Book";
+                        final image = book["image"] ?? "";
+                        final price = parseDouble(book["price"]);
+                        final pdfUrl = book["pdfUrl"] ?? "";
 
                         return Card(
-                          margin:
-                              const EdgeInsets.symmetric(
+                          margin: const EdgeInsets.symmetric(
                             horizontal: 15,
                             vertical: 8,
                           ),
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(
-                                    20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: ListTile(
-                            leading:
-                                CircleAvatar(
+                            leading: CircleAvatar(
                               radius: 25,
                               backgroundImage:
-                                  image.isNotEmpty
-                                      ? NetworkImage(
-                                          image,
-                                        )
-                                      : null,
+                                  image.isNotEmpty ? NetworkImage(image) : null,
                               child: image.isEmpty
-                                  ? const Icon(
-                                      Icons.book,
-                                    )
+                                  ? const Icon(Icons.book)
                                   : null,
                             ),
                             title: Text(
                               title,
-                              style:
-                                  const TextStyle(
-                                fontWeight:
-                                    FontWeight.bold,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                             subtitle: Text(
                               "Price: \$${price.toStringAsFixed(2)}",
                             ),
-                            trailing:
-                                const Icon(
-                              Icons
-                                  .arrow_forward_ios,
-                            ),
+                            trailing: const Icon(Icons.arrow_forward_ios),
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      PdfViewerScreen(
-                                    pdfUrl:
-                                        pdfUrl,
-                                    title:
-                                        title,
-                                    isAdmin:
-                                        true,
+                                  builder: (_) => PdfViewerScreen(
+                                    pdfUrl: pdfUrl,
+                                    title: title,
                                   ),
                                 ),
                               );
